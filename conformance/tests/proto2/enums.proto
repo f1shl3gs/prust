@@ -1,0 +1,11 @@
+syntax = "proto2";
+
+enum State {
+  Off = 0;
+  On = 1;
+}
+
+message Foo {
+  optional State first = 1;
+  required State second = 2;
+}

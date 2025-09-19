@@ -1,0 +1,245 @@
+syntax = "proto2";
+
+package map;
+
+message Empty {}
+
+message Value {
+  required int32 num = 1;
+  map<string, int32> map = 2;
+}
+
+enum State {
+  Off = 0;
+  On = 1;
+}
+
+message Data {
+  map<int32, double> int32_double = 1;
+  map<int32, float> int32_float = 2;
+  map<int32, int32> int32_int32 = 3;
+  map<int32, int64> int32_int64 = 4;
+  map<int32, uint32> int32_uint32 = 5;
+  map<int32, uint64> int32_uint64 = 6;
+  map<int32, sint32> int32_sint32 = 7;
+  map<int32, sint64> int32_sint64 = 8;
+  map<int32, fixed32> int32_fixed32 = 9;
+  map<int32, fixed64> int32_fixed64 = 10;
+  map<int32, sfixed32> int32_sfixed32 = 11;
+  map<int32, sfixed64> int32_sfixed64 = 12;
+  map<int32, bool> int32_bool = 13;
+  map<int32, string> int32_string = 14;
+  map<int32, bytes> int32_bytes = 15;
+  map<int32, Empty> int32_empty = 16;
+  map<int32, Value> int32_value = 17;
+  map<int32, State> int32_state = 18;
+
+  map<int64, double> int64_double = 19;
+  map<int64, float> int64_float = 20;
+  map<int64, int32> int64_int32 = 21;
+  map<int64, int64> int64_int64 = 22;
+  map<int64, uint32> int64_uint32 = 23;
+  map<int64, uint64> int64_uint64 = 24;
+  map<int64, sint32> int64_sint32 = 25;
+  map<int64, sint64> int64_sint64 = 26;
+  map<int64, fixed32> int64_fixed32 = 27;
+  map<int64, fixed64> int64_fixed64 = 28;
+  map<int64, sfixed32> int64_sfixed32 = 29;
+  map<int64, sfixed64> int64_sfixed64 = 30;
+  map<int64, bool> int64_bool = 31;
+  map<int64, string> int64_string = 32;
+  map<int64, bytes> int64_bytes = 33;
+  map<int64, Empty> int64_empty = 34;
+  map<int64, Value> int64_value = 35;
+  map<int64, State> int64_state = 36;
+
+  map<uint32, double> uint32_double = 37;
+  map<uint32, float> uint32_float = 38;
+  map<uint32, int32> uint32_int32 = 39;
+  map<uint32, int64> uint32_int64 = 40;
+  map<uint32, uint32> uint32_uint32 = 41;
+  map<uint32, uint64> uint32_uint64 = 42;
+  map<uint32, sint32> uint32_sint32 = 43;
+  map<uint32, sint64> uint32_sint64 = 44;
+  map<uint32, fixed32> uint32_fixed32 = 45;
+  map<uint32, fixed64> uint32_fixed64 = 46;
+  map<uint32, sfixed32> uint32_sfixed32 = 47;
+  map<uint32, sfixed64> uint32_sfixed64 = 48;
+  map<uint32, bool> uint32_bool = 49;
+  map<uint32, string> uint32_string = 50;
+  map<uint32, bytes> uint32_bytes = 51;
+  map<uint32, Empty> uint32_empty = 52;
+  map<uint32, Value> uint32_value = 53;
+  map<uint32, State> uint32_state = 54;
+
+  map<uint64, double> uint64_double = 55;
+  map<uint64, float> uint64_float = 56;
+  map<uint64, int32> uint64_int32 = 57;
+  map<uint64, int64> uint64_int64 = 58;
+  map<uint64, uint32> uint64_uint32 = 59;
+  map<uint64, uint64> uint64_uint64 = 60;
+  map<uint64, sint32> uint64_sint32 = 61;
+  map<uint64, sint64> uint64_sint64 = 62;
+  map<uint64, fixed32> uint64_fixed32 = 63;
+  map<uint64, fixed64> uint64_fixed64 = 64;
+  map<uint64, sfixed32> uint64_sfixed32 = 65;
+  map<uint64, sfixed64> uint64_sfixed64 = 66;
+  map<uint64, bool> uint64_bool = 67;
+  map<uint64, string> uint64_string = 68;
+  map<uint64, bytes> uint64_bytes = 69;
+  map<uint64, Empty> uint64_empty = 70;
+  map<uint64, Value> uint64_value = 71;
+  map<uint64, State> uint64_state = 72;
+
+  map<sint32, double> sint32_double = 73;
+  map<sint32, float> sint32_float = 74;
+  map<sint32, int32> sint32_int32 = 75;
+  map<sint32, int64> sint32_int64 = 76;
+  map<sint32, uint32> sint32_uint32 = 77;
+  map<sint32, uint64> sint32_uint64 = 78;
+  map<sint32, sint32> sint32_sint32 = 79;
+  map<sint32, sint64> sint32_sint64 = 80;
+  map<sint32, fixed32> sint32_fixed32 = 81;
+  map<sint32, fixed64> sint32_fixed64 = 82;
+  map<sint32, sfixed32> sint32_sfixed32 = 83;
+  map<sint32, sfixed64> sint32_sfixed64 = 84;
+  map<sint32, bool> sint32_bool = 85;
+  map<sint32, string> sint32_string = 86;
+  map<sint32, bytes> sint32_bytes = 87;
+  map<sint32, Empty> sint32_empty = 88;
+  map<sint32, Value> sint32_value = 89;
+  map<sint32, State> sint32_state = 90;
+
+  map<sint64, double> sint64_double = 91;
+  map<sint64, float> sint64_float = 92;
+  map<sint64, int32> sint64_int32 = 93;
+  map<sint64, int64> sint64_int64 = 94;
+  map<sint64, uint32> sint64_uint32 = 95;
+  map<sint64, uint64> sint64_uint64 = 96;
+  map<sint64, sint32> sint64_sint32 = 97;
+  map<sint64, sint64> sint64_sint64 = 98;
+  map<sint64, fixed32> sint64_fixed32 = 99;
+  map<sint64, fixed64> sint64_fixed64 = 100;
+  map<sint64, sfixed32> sint64_sfixed32 = 101;
+  map<sint64, sfixed64> sint64_sfixed64 = 102;
+  map<sint64, bool> sint64_bool = 103;
+  map<sint64, string> sint64_string = 104;
+  map<sint64, bytes> sint64_bytes = 105;
+  map<sint64, Empty> sint64_empty = 106;
+  map<sint64, Value> sint64_value = 107;
+  map<sint64, State> sint64_state = 108;
+
+  map<fixed32, double> fixed32_double = 109;
+  map<fixed32, float> fixed32_float = 110;
+  map<fixed32, int32> fixed32_int32 = 111;
+  map<fixed32, int64> fixed32_int64 = 112;
+  map<fixed32, uint32> fixed32_uint32 = 113;
+  map<fixed32, uint64> fixed32_uint64 = 114;
+  map<fixed32, sint32> fixed32_sint32 = 115;
+  map<fixed32, sint64> fixed32_sint64 = 116;
+  map<fixed32, fixed32> fixed32_fixed32 = 117;
+  map<fixed32, fixed64> fixed32_fixed64 = 118;
+  map<fixed32, sfixed32> fixed32_sfixed32 = 119;
+  map<fixed32, sfixed64> fixed32_sfixed64 = 120;
+  map<fixed32, bool> fixed32_bool = 121;
+  map<fixed32, string> fixed32_string = 122;
+  map<fixed32, bytes> fixed32_bytes = 123;
+  map<fixed32, Empty> fixed32_empty = 124;
+  map<fixed32, Value> fixed32_value = 125;
+  map<fixed32, State> fixed32_state = 126;
+
+  map<fixed64, double> fixed64_double = 127;
+  map<fixed64, float> fixed64_float = 128;
+  map<fixed64, int32> fixed64_int32 = 129;
+  map<fixed64, int64> fixed64_int64 = 130;
+  map<fixed64, uint32> fixed64_uint32 = 131;
+  map<fixed64, uint64> fixed64_uint64 = 132;
+  map<fixed64, sint32> fixed64_sint32 = 133;
+  map<fixed64, sint64> fixed64_sint64 = 134;
+  map<fixed64, fixed32> fixed64_fixed32 = 135;
+  map<fixed64, fixed64> fixed64_fixed64 = 136;
+  map<fixed64, sfixed32> fixed64_sfixed32 = 137;
+  map<fixed64, sfixed64> fixed64_sfixed64 = 138;
+  map<fixed64, bool> fixed64_bool = 139;
+  map<fixed64, string> fixed64_string = 140;
+  map<fixed64, bytes> fixed64_bytes = 141;
+  map<fixed64, Empty> fixed64_empty = 142;
+  map<fixed64, Value> fixed64_value = 143;
+  map<fixed64, State> fixed64_state = 144;
+
+  map<sfixed32, double> sfixed32_double = 145;
+  map<sfixed32, float> sfixed32_float = 146;
+  map<sfixed32, int32> sfixed32_int32 = 147;
+  map<sfixed32, int64> sfixed32_int64 = 148;
+  map<sfixed32, uint32> sfixed32_uint32 = 149;
+  map<sfixed32, uint64> sfixed32_uint64 = 150;
+  map<sfixed32, sint32> sfixed32_sint32 = 151;
+  map<sfixed32, sint64> sfixed32_sint64 = 152;
+  map<sfixed32, fixed32> sfixed32_fixed32 = 153;
+  map<sfixed32, fixed64> sfixed32_fixed64 = 154;
+  map<sfixed32, sfixed32> sfixed32_sfixed32 = 155;
+  map<sfixed32, sfixed64> sfixed32_sfixed64 = 156;
+  map<sfixed32, bool> sfixed32_bool = 157;
+  map<sfixed32, string> sfixed32_string = 158;
+  map<sfixed32, bytes> sfixed32_bytes = 159;
+  map<sfixed32, Empty> sfixed32_empty = 160;
+  map<sfixed32, Value> sfixed32_value = 161;
+  map<sfixed32, State> sfixed32_state = 162;
+
+  map<sfixed64, double> sfixed64_double = 163;
+  map<sfixed64, float> sfixed64_float = 164;
+  map<sfixed64, int32> sfixed64_int32 = 165;
+  map<sfixed64, int64> sfixed64_int64 = 166;
+  map<sfixed64, uint32> sfixed64_uint32 = 167;
+  map<sfixed64, uint64> sfixed64_uint64 = 168;
+  map<sfixed64, sint32> sfixed64_sint32 = 169;
+  map<sfixed64, sint64> sfixed64_sint64 = 170;
+  map<sfixed64, fixed32> sfixed64_fixed32 = 171;
+  map<sfixed64, fixed64> sfixed64_fixed64 = 172;
+  map<sfixed64, sfixed32> sfixed64_sfixed32 = 173;
+  map<sfixed64, sfixed64> sfixed64_sfixed64 = 174;
+  map<sfixed64, bool> sfixed64_bool = 175;
+  map<sfixed64, string> sfixed64_string = 176;
+  map<sfixed64, bytes> sfixed64_bytes = 177;
+  map<sfixed64, Empty> sfixed64_empty = 178;
+  map<sfixed64, Value> sfixed64_value = 179;
+  map<sfixed64, State> sfixed64_state = 180;
+
+  map<bool, double> bool_double = 181;
+  map<bool, float> bool_float = 182;
+  map<bool, int32> bool_int32 = 183;
+  map<bool, int64> bool_int64 = 184;
+  map<bool, uint32> bool_uint32 = 185;
+  map<bool, uint64> bool_uint64 = 186;
+  map<bool, sint32> bool_sint32 = 187;
+  map<bool, sint64> bool_sint64 = 188;
+  map<bool, fixed32> bool_fixed32 = 189;
+  map<bool, fixed64> bool_fixed64 = 190;
+  map<bool, sfixed32> bool_sfixed32 = 191;
+  map<bool, sfixed64> bool_sfixed64 = 192;
+  map<bool, bool> bool_bool = 193;
+  map<bool, string> bool_string = 194;
+  map<bool, bytes> bool_bytes = 195;
+  map<bool, Empty> bool_empty = 196;
+  map<bool, Value> bool_value = 197;
+  map<bool, State> bool_state = 198;
+
+  map<string, double> string_double = 199;
+  map<string, float> string_float = 200;
+  map<string, int32> string_int32 = 201;
+  map<string, int64> string_int64 = 202;
+  map<string, uint32> string_uint32 = 203;
+  map<string, uint64> string_uint64 = 204;
+  map<string, sint32> string_sint32 = 205;
+  map<string, sint64> string_sint64 = 206;
+  map<string, fixed32> string_fixed32 = 207;
+  map<string, fixed64> string_fixed64 = 208;
+  map<string, sfixed32> string_sfixed32 = 209;
+  map<string, sfixed64> string_sfixed64 = 210;
+  map<string, bool> string_bool = 211;
+  map<string, string> string_string = 212;
+  map<string, bytes> string_bytes = 213;
+  map<string, Empty> string_empty = 214;
+  map<string, Value> string_value = 215;
+  map<string, State> string_state = 216;
+}

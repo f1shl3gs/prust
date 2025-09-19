@@ -1,0 +1,18 @@
+syntax = "proto2";
+
+import "import_nested_imported.proto";
+
+message Top {
+    message Second {
+
+    }
+}
+
+message ContainsImportedNested {
+    optional ContainerForNested.NestedMessage m = 1;
+    optional ContainerForNested.NestedEnum e = 2;
+    optional ContainerForNested c = 3;
+    optional Top top = 4;
+    optional Top.Second second = 5;
+    optional ContainerForNested.NestedMessage.InnerNested inner = 6;
+}

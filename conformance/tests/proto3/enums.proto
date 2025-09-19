@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package enums;
+
+enum State {
+  Off = 0;
+  On = 1;
+}
+
+message Foo {
+  optional State first = 1;
+  State second = 2;
+}

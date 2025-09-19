@@ -1,0 +1,15 @@
+syntax = "proto2";
+
+message ContainerForNested {
+    message NestedMessage {
+        message InnerNested {
+
+        }
+    }
+
+    enum NestedEnum {
+        RED = 1;
+    }
+
+    optional int32 num = 1;
+}

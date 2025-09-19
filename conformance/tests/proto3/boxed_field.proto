@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package boxed_field;
+
+message Bar {
+  string foo = 1;
+  optional string foo1 = 2;
+}
+
+message Foo {
+  Bar bar = 1;
+  Foo foo = 2;
+  repeated Foo foos = 3;
+}

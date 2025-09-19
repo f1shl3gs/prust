@@ -1,0 +1,99 @@
+syntax = "proto2";
+
+package perf;
+
+enum State {
+  Off = 0;
+  On = 1;
+}
+
+message Simple {
+  optional string key = 1;
+  optional int32 value = 2;
+}
+
+message Repeats {
+  repeated double double = 1;
+  repeated float float = 2;
+  repeated int32 int32 = 3;
+  repeated int64 int64 = 4;
+  repeated uint32 uint32 = 5;
+  repeated uint64 uint64 = 6;
+  repeated sint32 sint32 = 7;
+  repeated sint64 sint64 = 8;
+  repeated fixed32 fixed32 = 9;
+  repeated fixed64 fixed64 = 10;
+  repeated sfixed32 sfixed32 = 11;
+  repeated sfixed64 sfixed64 = 12;
+  repeated bool bool = 13;
+  repeated string string = 14;
+  repeated bytes bytes = 15;
+}
+
+message PackedRepeats {
+  repeated double double = 1 [ packed = true ];
+  repeated float float = 2 [ packed = true ];
+  repeated int32 int32 = 3 [ packed = true ];
+  repeated int64 int64 = 4 [ packed = true ];
+  repeated uint32 uint32 = 5 [ packed = true ];
+  repeated uint64 uint64 = 6 [ packed = true ];
+  repeated sint32 sint32 = 7 [ packed = true ];
+  repeated sint64 sint64 = 8 [ packed = true ];
+  repeated fixed32 fixed32 = 9 [ packed = true ];
+  repeated fixed64 fixed64 = 10 [ packed = true ];
+  repeated sfixed32 sfixed32 = 11 [ packed = true ];
+  repeated sfixed64 sfixed64 = 12 [ packed = true ];
+  repeated bool bool = 13 [ packed = true ];
+}
+
+message Complex {
+  required double double = 1;
+  required float float = 2;
+  required int32 int32 = 3;
+  required int64 int64 = 4;
+  required uint32 uint32 = 5;
+  required uint64 uint64 = 6;
+  required sint32 sint32 = 7;
+  required sint64 sint64 = 8;
+  required fixed32 fixed32 = 9;
+  required fixed64 fixed64 = 10;
+  required sfixed32 sfixed32 = 11;
+  required sfixed64 sfixed64 = 12;
+  required bool bool = 13;
+  required string small_string = 14;
+  required string large_string = 15;
+  required bytes small_bytes = 16;
+  required bytes large_bytes = 17;
+  required State state = 18;
+
+  map<string, int32> string_int32 = 19;
+  map<string, Simple> string_simple = 20;
+  map<string, State> string_state = 21;
+}
+
+message SelfReference {
+  required string name = 1;
+  required int32 value = 2;
+
+  optional SelfReference reference = 3;
+}
+
+message Data {
+  required State state = 1;
+  repeated State states = 2;
+
+  required Simple simple = 3;
+  repeated Simple simples = 4;
+
+  required Complex complex = 5;
+  repeated Complex complexes = 6;
+
+  required SelfReference self_reference = 7;
+  repeated SelfReference self_references = 8;
+
+  required Repeats repeat = 9;
+  repeated Repeats repeats = 10;
+
+  required PackedRepeats packed_repeat = 11;
+  repeated PackedRepeats packed_repeats = 12;
+}

@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+import "import_nonunique_1.proto";
+import "import_nonunique_2.proto";
+
+message TestImportNonunque {
+    optional nonunique_1.Nonunique n1 = 1;
+    optional nonunique_2.Nonunique n2 = 2;
+}

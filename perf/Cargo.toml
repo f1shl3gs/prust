@@ -1,0 +1,27 @@
+[package]
+name = "perf"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "profile"
+path = "src/profile.rs"
+
+[[bin]]
+name = "prw"
+path = "prw/main.rs"
+
+[build-dependencies]
+prost-build = { version = "0.14" }
+prust-build = { path = "../prust-build" }
+
+[dependencies]
+arbitrary = { version = "1.4", features = ["derive"] }
+bytes = { version = "1.10" }
+prost = { version = "0.14" }
+prust = { path = "../prust" }
+quick-protobuf = { version = "0.8" }
+pprof = { version = "0.15", features = ["flamegraph"] }
+rand = { version = "0.9" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }

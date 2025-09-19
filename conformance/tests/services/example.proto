@@ -1,0 +1,16 @@
+package example;
+
+message Request {
+  required string name = 1;
+}
+
+message Response {
+  required int32 code = 1;
+}
+
+service Example {
+  rpc SayHello(Request) returns (Response);
+  rpc LotsOfReplies(Request) returns (stream Response);
+  rpc LotsOfGreetings(stream Request) returns (Response);
+  rpc BidiHello(stream Request) returns (stream Response);
+}
