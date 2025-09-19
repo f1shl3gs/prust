@@ -13,7 +13,7 @@
 
 ### 文件大小
 `prust` 生成的文件不仅包含了相应的 `struct` 还包含了对应的 `Deserialize` 和 `Serialize` 实现，
-因此生成的文件将会比 `prost` 生成的文件大一些， 但是依旧比过程宏生成的代码小。 
+因此生成的文件将会比 `prost` 生成的文件大一些， 但是依旧比 `prost` 过程宏生成的代码小。 
 
 <table>
     <thead>
@@ -50,11 +50,11 @@
     </tbody>
 </table>
 
-
 ### 性能对比
-在 perf 中的 [负载](perf/proto/perf.proto) 下，`prust` 性能表现非常优异，
+在测试的 [负载](perf/proto/perf.proto) 下，`prust` 性能表现非常优异，
 解码性能甚至快要追上使用了 Cow 来优化解码性能的 `quick-protobuf`, 
-编码性能大约是`prost`的两倍。
+编码性能大约是`prost`的两倍。在不同负载下，`prust` 性能表现也会不同的，如果你打算
+切换至`prust`，你需要自行测试验证。
 
 ```text
 Decoding 6000 times
@@ -68,7 +68,7 @@ quick:  1982.27 op/s,   775.76 M/s, 3.03s
 prust:  3259.56 op/s,  1275.62 M/s, 1.84s
 ```
 
-`NOTE`： 不同负载下的性能表现是不同的，在你的场景中，`prust` 也许不会是性能最好的，用户需要自行测试验证。
+`NOTE`： `prost` 似乎发生了内存泄漏，在运行时使用了 2.1G 内存。
 
 ## 示例
 - 添加 `prust` 到 `build-dependencies`
@@ -109,7 +109,7 @@ fn main() {
 ```
 
 ## Grpc
-`prust` 会根据 service 生成对应的并且兼容 `tonic` 的代码来支持 Grpc，所以从`prost`切换至
+`prust` 会根据 service 生成对应的并且兼容 [tonic](https://github.com/hyperium/tonic) 的代码来支持 Grpc，所以从`prost`切换至
 `prust` 将会非常容易。
 1. 启用 `prust` 的 `tonic` feature。
 2. 修改对应的引用代码

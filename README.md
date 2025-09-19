@@ -55,9 +55,10 @@ than then expanded code.
 
 ### Performance
 With our [workload](perf/proto/perf.proto) which covers lots of cases, `prust` works very well. 
-The decoding performance almost catch up `quick-protobuf`, which
-uses `Cow` to improve performance( `prust` don't ). And the encoding performance is around 2x faster than
-`prost`.
+The decoding performance almost catch up `quick-protobuf`, which uses `Cow` to 
+improve performance(while `prust` don't ). And the encoding performance is around 2x 
+faster than `prost`. With different workload, `prust` performance will be different
+too, users must verify it if you want to switch to `prust`.
 
 ```text
 Decoding 6000 times
@@ -71,8 +72,7 @@ quick:  1982.27 op/s,   775.76 M/s, 3.03s
 prust:  3259.56 op/s,  1275.62 M/s, 1.84s
 ```
 
-`NOTE`: With your real world workloads, `prust` might not be the fastest, you should always 
-test it by yourself.
+`NOTE`: `prost` seems leak memory, it takes 2.1G to finish our test.
 
 ## Example
 - Add `prust` to `build-dependencies`
