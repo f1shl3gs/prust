@@ -1,13 +1,14 @@
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::Duration;
+
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
 use tonic::codegen::tokio_stream;
 use tonic::codegen::tokio_stream::Stream;
-use crate::services::health::health::health_check_response::ServingStatus;
-use crate::services::health::health::health_server::HealthServer;
-use crate::services::health::health::{HealthCheckRequest, HealthCheckResponse};
+use health::health_check_response::ServingStatus;
+use health::health_server::HealthServer;
+use health::{HealthCheckRequest, HealthCheckResponse};
 
 mod health {
     include!("prust/grpc_health_v1.rs");
