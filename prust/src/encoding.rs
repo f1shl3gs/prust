@@ -219,21 +219,6 @@ impl<'a> Writer<'a> {
     pub fn write_int64(&mut self, v: i64) -> Result<(), EncodeError> {
         self.write_varint(v as u64)
     }
-
-    pub fn write_varint_checked(&mut self, mut v: u64) -> Result<(), EncodeError> {
-        while v > 0x7f {
-            self.buf[self.pos] = (v as u8 & 0x7f) | 0x80;
-            self.pos += 1;
-
-            v >>= 7;
-        }
-
-        self.buf[self.pos] = v as u8;
-        self.pos += 1;
-
-        Ok(())
-    }
-
     pub fn write_uint32(&mut self, mut v: u32) -> Result<(), EncodeError> {
         while v > 0x7f {
             if self.pos + 1 > self.buf.len() {
