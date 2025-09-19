@@ -6,6 +6,7 @@ code from `proto2` or `proto3` files.
 Compare to other implementations
 - highly optimized code, `prust` calculates everything when generating, so less calculating at runtime
 - zero dependency, `prust` do not need that, no extra bloat
+- `grpc` is supported by default (with [tonic](https://github.com/hyperium/tonic))
 - less build time, since we don't need to expand proc macros
 - `group` is not supported, since it is deprecated too.
 
@@ -107,6 +108,16 @@ fn main() {
     data.encode(&mut buf).unwrap();
 }
 ```
+
+## Grpc
+Grpc is supported and the generated file works with `tonic`, 
+and the generated file is just like `tonic` does, so switching from `tonic`
+to `prust` is very easy.
+1. enable `tonic` feature of `prust`
+2. fix the use path in your rust file
+3. running your program or test
+
+A running example can be found in the [conformance/tests/services/health.rs](conformance/tests/services/health.rs)
 
 ## TODO
 - implement default value for map's key and value, which will reduce 
