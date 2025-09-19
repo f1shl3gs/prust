@@ -1,5 +1,7 @@
 # Prust
 
+English | [中文](README_cn.md)
+
 `prust` is a protobuf implementation for Rust. `prust` generates simple and high performance
 code from `proto2` or `proto3` files.
 
@@ -12,8 +14,8 @@ Compare to other implementations
 
 ### Sizes
 `prust` generates structs and implements `Deserialize` and `Serialize`,
-so the generated file is a little bit larger than `prost` (which uses 
-procedure macros to implement `prost::Message` and so on).
+so the generated file is a little bit larger than `prost`, but still smaller 
+than then expanded code.
 
 <table>
     <thead>
@@ -52,8 +54,10 @@ procedure macros to implement `prost::Message` and so on).
 
 
 ### Performance
-With our [workload](perf/proto/perf.proto) which covers lots of cases, 
-`prust` works very well. And, be aware, difference workloads impacts the performance a lot.
+With our [workload](perf/proto/perf.proto) which covers lots of cases, `prust` works very well. 
+The decoding performance almost catch up `quick-protobuf`, which
+uses `Cow` to improve performance( `prust` don't ). And the encoding performance is around 2x faster than
+`prost`.
 
 ```text
 Decoding 6000 times
@@ -67,7 +71,8 @@ quick:  1982.27 op/s,   775.76 M/s, 3.03s
 prust:  3259.56 op/s,  1275.62 M/s, 1.84s
 ```
 
-`NOTE`: `prust` does not support Cow, so the decoding performance is not as good as `quick-protobuf`.
+`NOTE`: With your real world workloads, `prust` might not be the fastest, you should always 
+test it by yourself.
 
 ## Example
 - Add `prust` to `build-dependencies`
