@@ -7,7 +7,7 @@ pub enum DecodeError {
     // Unknown WireType
     WireType(u8),
     Deprecated(&'static str),
-    UnknownEnumValue(&'static str, i32),
+    UnknownVariant(&'static str, i32),
     Utf8,
 }
 
@@ -18,7 +18,7 @@ impl std::fmt::Display for DecodeError {
             DecodeError::Varint => f.write_str("invalid varint"),
             DecodeError::WireType(typ) => write!(f, "unknown wire type: {}", typ),
             DecodeError::Deprecated(typ) => write!(f, "deprecated \"{}\" is not supported", typ),
-            DecodeError::UnknownEnumValue(typ, value) => {
+            DecodeError::UnknownVariant(typ, value) => {
                 write!(f, "unknown enum value {typ}: {value}")
             }
             DecodeError::Utf8 => f.write_str("invalid UTF-8"),
@@ -81,6 +81,9 @@ pub fn sizeof_sint64(v: i64) -> usize {
 
 /// Return the number of bytes required to store a variable-length unsigned
 /// 64-bit integer in base-128 varint encoding
+///
+/// This function is deadly simple, and easy to understand, the performance
+/// is good enough most cases.
 #[inline]
 pub fn sizeof_varint(v: u64) -> usize {
     match v {
@@ -554,9 +557,11 @@ impl<'a> Reader<'a> {
         let mut key: K = Default::default();
         let mut value: V = Default::default();
         while self.pos < end {
-            // read_variant32 should be called, but max tag is 1 << 3 | 5
-            // is less than 127, u8 is fine here. and the size is checked
-            // by the `while` condition, so
+            // read_variant32 should be called, but max tag 2 << 3 | 5 is only 21
+            // is way less than 127, a single u8 is enough to store,
+            // and the size is already checked by the `while` condition, so
+            // we can just read it without any bound checking and compiler will
+            // eliminate it too.
             let num = self.src[self.pos] >> 3;
             self.pos += 1;
 
