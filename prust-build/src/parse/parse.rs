@@ -499,7 +499,10 @@ fn parse_enum(lexer: &mut Lexer, cx: &mut Context) -> Result<Enum, Error> {
         };
 
         if cx.syntax == Syntax::Proto3 && variants.is_empty() && value != 0 {
-            panic!("{}", lexer.diagnostic(span, "first variant of enum must be zero in proto3"));
+            panic!(
+                "{}",
+                lexer.diagnostic(span, "first variant of enum must be zero in proto3")
+            );
         }
 
         if variants.iter().any(|(n, v)| variant == n || value == *v) {
