@@ -5,7 +5,10 @@ use crate::codegen::sanitize::{snake, upper_camel};
 
 pub fn generate_service(buf: &mut Buffer, svc: &Service, cx: &mut Context) {
     if !cx.config.build_server && !cx.config.build_client {
-        println!("cargo::warning=service {:?} founded, but `build_client` and `build_server` are both disabled", svc.name);
+        println!(
+            "cargo::warning=service {:?} founded, but `build_client` and `build_server` are both disabled",
+            svc.name
+        );
         return;
     }
 
@@ -334,7 +337,10 @@ fn generate_server(svc: &Service, buf: &mut Buffer, cx: &mut Context) {
                 buf.push(format!("async fn {}(\n", snake(&func.name)));
                 buf.push("    &self,\n");
                 buf.push(format!("    req: tonic::Request<{}>,\n", req));
-                buf.push(format!(") -> Result<tonic::Response<{}>, tonic::Status>;\n", resp));
+                buf.push(format!(
+                    ") -> Result<tonic::Response<{}>, tonic::Status>;\n",
+                    resp
+                ));
             }
 
             Method::ClientStreaming => {
@@ -597,7 +603,8 @@ fn generate_server_handle(svc: &Service, func: &Function, buf: &mut Buffer, cx: 
             buf.push("    Box::pin(async move {\n");
             buf.push(format!(
                 "        <T as {}>::{}(&inner, req).await\n",
-                upper_camel(&svc.name), snake(&func.name)
+                upper_camel(&svc.name),
+                snake(&func.name)
             ));
             buf.push("    })\n");
             buf.push("}\n");
@@ -623,8 +630,15 @@ fn generate_server_handle(svc: &Service, func: &Function, buf: &mut Buffer, cx: 
             buf.push("})\n");
         }
         Method::ClientStreaming => {
-            buf.push(format!("struct Wrapper<T: {}>(Arc<T>);\n", upper_camel(&svc.name)));
-            buf.push(format!("impl<T: {}> tonic::server::ClientStreamingService<{}> for Wrapper<T> {{\n", upper_camel(&svc.name), req));
+            buf.push(format!(
+                "struct Wrapper<T: {}>(Arc<T>);\n",
+                upper_camel(&svc.name)
+            ));
+            buf.push(format!(
+                "impl<T: {}> tonic::server::ClientStreamingService<{}> for Wrapper<T> {{\n",
+                upper_camel(&svc.name),
+                req
+            ));
             buf.indent += 1;
 
             buf.push(format!("type Response = {};\n", resp));
@@ -635,11 +649,18 @@ fn generate_server_handle(svc: &Service, func: &Function, buf: &mut Buffer, cx: 
 
             buf.push("fn call(\n");
             buf.push("    &mut self,\n");
-            buf.push(format!("    req: tonic::Request<tonic::Streaming<{}>>,\n", req));
+            buf.push(format!(
+                "    req: tonic::Request<tonic::Streaming<{}>>,\n",
+                req
+            ));
             buf.push(") -> Self::Future {\n");
             buf.push("    let inner = Arc::clone(&self.0);\n");
             buf.push("    Box::pin(async move {\n");
-            buf.push(format!("        <T as {}>::{}(&inner, req).await\n", upper_camel(&svc.name), snake(&func.name)));
+            buf.push(format!(
+                "        <T as {}>::{}(&inner, req).await\n",
+                upper_camel(&svc.name),
+                snake(&func.name)
+            ));
             buf.push("    })\n");
             buf.push("}\n");
 
@@ -743,7 +764,10 @@ fn generate_server_handle(svc: &Service, func: &Function, buf: &mut Buffer, cx: 
 
             buf.push("fn call(\n");
             buf.push("    &mut self,\n");
-            buf.push(format!("    req: tonic::Request<tonic::Streaming<{}>>,\n", req));
+            buf.push(format!(
+                "    req: tonic::Request<tonic::Streaming<{}>>,\n",
+                req
+            ));
             buf.push(") -> Self::Future {\n");
             buf.push("    let inner = Arc::clone(&self.0);\n");
             buf.push("    Box::pin(async move {\n");
