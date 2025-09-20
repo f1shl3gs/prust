@@ -1,4 +1,4 @@
-use ::prust::{Deserialize};
+use ::prust::Deserialize;
 
 mod prust {
     #![allow(dead_code, unused_imports)]
@@ -16,7 +16,7 @@ mod prost {
     include!("prost/data_types.rs");
 }
 
-// validate::fuzz!(FooMessage);
+conformance::fuzz!(FooMessage);
 
 #[test]
 fn decode() {
@@ -42,45 +42,4 @@ fn decode() {
     let out = prust::FooMessage::decode(input).unwrap();
     println!("out: {:?}", out.f_map);
     // println!("{}", out.encoded_len());
-}
-
-// prost will not serialize map key or value if they are default value
-#[ignore]
-#[test]
-fn cs() {
-    use ::arbitrary::{Arbitrary, Unstructured};
-    use ::prost::Message;
-    use ::prust::Serialize;
-
-    for _ in 0..1000 {
-        let data = rand::random::<[u8; 128]>();
-        let mut unstructed = Unstructured::new(&data);
-
-        let orig = prust::FooMessage::arbitrary(&mut unstructed).unwrap();
-        let calculated = orig.encoded_len();
-        let mut buf = vec![0u8; calculated];
-        let written = orig.encode(&mut buf).unwrap();
-        assert_eq!(
-            calculated, written,
-            "encoded_len is not equal to the written"
-        );
-
-        let out = prost::FooMessage::decode(&buf[..written]).unwrap();
-        let calculated = out.encoded_len();
-        assert_eq!(
-            written,
-            calculated,
-            "prost calculated size is not equal to the prust written\n{:?}\n{:?}\n{:?}",
-            orig,
-            out,
-            &buf[..written]
-        );
-
-        let buf = out.encode_to_vec();
-        assert_eq!(
-            buf.len(),
-            calculated,
-            "prost encoded len is not equal to the written"
-        );
-    }
 }
