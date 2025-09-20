@@ -50,7 +50,7 @@ fn main() {
                 };
 
                 output = value;
-            },
+            }
             "-h" | "--help" => {
                 help();
                 return;
