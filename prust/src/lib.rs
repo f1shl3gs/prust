@@ -37,7 +37,8 @@ pub mod tonic_codec {
             let required = item.encoded_len();
             dst.reserve(required);
 
-            let buf = unsafe { std::slice::from_raw_parts_mut(dst.chunk_mut().as_mut_ptr(), required) };
+            let buf =
+                unsafe { std::slice::from_raw_parts_mut(dst.chunk_mut().as_mut_ptr(), required) };
             let written = item
                 .encode(buf)
                 .map_err(|err| Status::internal(err.to_string()))?;
@@ -58,8 +59,8 @@ pub mod tonic_codec {
 
         fn decode(&mut self, src: &mut DecodeBuf<'_>) -> Result<Option<Self::Item>, Self::Error> {
             let len = src.chunk().len();
-            let item =
-                Deserialize::decode(src.chunk()).map_err(|err| Status::internal(err.to_string()))?;
+            let item = Deserialize::decode(src.chunk())
+                .map_err(|err| Status::internal(err.to_string()))?;
             src.advance(len);
 
             Ok(Some(item))
