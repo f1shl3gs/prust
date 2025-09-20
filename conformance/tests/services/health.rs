@@ -2,13 +2,13 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::Duration;
 
-use tonic::transport::Server;
-use tonic::{Request, Response, Status};
-use tonic::codegen::tokio_stream;
-use tonic::codegen::tokio_stream::Stream;
 use health::health_check_response::ServingStatus;
 use health::health_server::HealthServer;
 use health::{HealthCheckRequest, HealthCheckResponse};
+use tonic::codegen::tokio_stream;
+use tonic::codegen::tokio_stream::Stream;
+use tonic::transport::Server;
+use tonic::{Request, Response, Status};
 
 mod health {
     include!("prust/grpc_health_v1.rs");
@@ -24,16 +24,12 @@ pub struct WatchStream {
 impl Stream for WatchStream {
     type Item = Result<HealthCheckResponse, Status>;
 
-    fn poll_next(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Self::Item>> {
-        Pin::new(&mut self.inner)
-            .poll_next(cx)
-            .map(|n| Some(Ok(HealthCheckResponse {
-                status: n.unwrap_or_default()
-            })))
-
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        Pin::new(&mut self.inner).poll_next(cx).map(|n| {
+            Some(Ok(HealthCheckResponse {
+                status: n.unwrap_or_default(),
+            }))
+        })
     }
 }
 
@@ -54,7 +50,10 @@ impl health::health_server::Health for CustomServer {
 
     type WatchStream = WatchStream;
 
-    async fn watch(&self, _req: Request<HealthCheckRequest>) -> Result<Response<Self::WatchStream>, Status> {
+    async fn watch(
+        &self,
+        _req: Request<HealthCheckRequest>,
+    ) -> Result<Response<Self::WatchStream>, Status> {
         todo!()
     }
 }
