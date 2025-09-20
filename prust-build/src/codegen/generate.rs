@@ -330,7 +330,7 @@ fn generate_enum(buf: &mut Buffer, en: &Enum, cx: &Context) {
             ));
         }
         buf.push(format!(
-            "            _ => Err(DecodeError::UnknownEnumValue(\"{}\", value)),\n",
+            "            _ => Err(DecodeError::UnknownVariant(\"{}\", value)),\n",
             upper_camel(&en.name)
         ));
         buf.push("        }\n");
