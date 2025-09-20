@@ -14,8 +14,9 @@ mod prost {
     }
 }
 
-use quick_protobuf::{BytesReader, BytesWriter, MessageRead, MessageWrite, Writer};
 use std::time::{Duration, Instant};
+
+use quick_protobuf::{BytesReader, BytesWriter, MessageRead, MessageWrite, Writer};
 
 const INPUT: &[u8] = include_bytes!("../proto/perf.data");
 
@@ -123,6 +124,17 @@ fn encode(round: usize) {
     );
 }
 
+#[test]
+fn encoding() {
+    use ::prust::{Deserialize, Serialize};
+
+    let data = prust::Data::decode(INPUT).unwrap();
+
+    let len = data.encoded_len();
+    let mut buf = vec![0u8; len];
+    data.encode(&mut buf).unwrap();
+}
+
 #[ignore]
 #[test]
 fn gen_data() {
@@ -130,7 +142,7 @@ fn gen_data() {
     use std::iter::repeat_with;
 
     use crate::prust::{Complex, Data, PackedRepeats, Repeats, SelfReference, Simple, State};
-    use ::prust::Encodable;
+    use ::prust::Serialize;
     use rand::distr::Alphanumeric;
     use rand::random_range;
     use rand::{Rng, random};
