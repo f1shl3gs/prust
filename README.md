@@ -125,5 +125,5 @@ to `prust` is very easy.
 A running example can be found in the [conformance/tests/services/health.rs](conformance/tests/services/health.rs)
 
 ## TODO
-- implement default value for map's key and value, which will reduce 
-encoded size and resource usage 
+- ~~implement default value for map's key and value, which will reduce 
+encoded size and resource usage~~ it hurt the performance a little bit

@@ -118,4 +118,4 @@ fn main() {
 完整实例可以在 [conformance/tests/services/health.rs](conformance/tests/services/health.rs) 找到。
 
 ## TODO
-- 实现 map 的 key/value 的默认值检查，以生成更小的二进制数据，降低CPU资源消耗
+- ~~实现 map 的 key/value 的默认值检查，以生成更小的二进制数据，降低CPU资源消耗~~ 编/解码性能有所下降
