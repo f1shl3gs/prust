@@ -1,6 +1,6 @@
 use super::context::{Container, Context};
 use super::deserialize::generate_deserialize;
-use super::sanitize::{sanitize_filepath, sanitize_type, sanitize_type_name, sanitize_variant};
+use super::sanitize::{sanitize_field, sanitize_filepath, sanitize_type, sanitize_type_name, sanitize_variant};
 use super::sanitize::{snake, upper_camel};
 use super::serialize::generate_serialize;
 use crate::Error;
@@ -155,16 +155,13 @@ fn generate_simple_struct(buf: &mut Buffer, msg: &Message, cx: &Context) {
             }
         };
 
-        if field.deprecated() {
-            buf.push("    #[deprecated]\n");
-        }
-        buf.push(format!("    pub {}: {},\n", snake(&field.name), typ));
+        buf.push(format!("    pub {}: {},\n", sanitize_field(&field.name), typ));
     }
 
     for oneof in &msg.oneofs {
         buf.push(format!(
             "    pub {}: Option<{}::{}>,\n",
-            snake(&oneof.name),
+            sanitize_field(&oneof.name),
             snake(&msg.name),
             upper_camel(&oneof.name)
         ));
@@ -208,18 +205,23 @@ fn generate_struct_default(buf: &mut Buffer, msg: &Message, cx: &Context) {
                 ));
             }
             FieldCardinality::Required => {
-                let Some(default) = field.default_value() else {
-                    buf.push(format!("        {field_name}: Default::default(),\n"));
-                    continue;
-                };
-                let default = generate_default_value(field, default, cx);
-                let default = match &field.typ {
-                    FieldType::Bytes => format!("Vec::from({default})"),
-                    FieldType::String => format!("String::from({default})"),
-                    _ => default,
-                };
+                if let Some(default) = cx.default_value(field) {
+                    let default = match &field.typ {
+                        FieldType::Bytes => format!("Vec::from(\"{default}\")"),
+                        FieldType::String => format!("String::from(\"{default}\")"),
+                        _ => default,
+                    };
 
-                buf.push(format!("        {field_name}: {default},\n"));
+                    buf.push(format!("        {field_name}: {default},\n"));
+
+                    continue;
+                }
+
+                if let FieldType::Message(typ) = &field.typ && let Some((path, Container::Enum(en))) = cx.lookup_type(typ) {
+                    buf.push(format!("        {field_name}: {path}::{},\n", sanitize_variant(&en.name, en.default_value())));
+                } else {
+                    buf.push(format!("        {field_name}: Default::default(),\n"));
+                }
             }
             FieldCardinality::Repeated | FieldCardinality::Map(_, _) => {
                 buf.push(format!("        {field_name}: Default::default(),\n"))
