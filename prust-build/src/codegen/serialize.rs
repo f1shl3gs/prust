@@ -1,6 +1,6 @@
 use super::Buffer;
 use super::context::{Container, Context};
-use super::sanitize::{sanitize_type_name, snake, upper_camel};
+use super::sanitize::{sanitize_type_name, sanitize_variant, snake, upper_camel};
 use super::sizeof::sizeof_varint;
 use crate::ast::{Enum, FieldCardinality, FieldType, Message};
 
@@ -54,6 +54,7 @@ fn generate_encoded_len(buf: &mut Buffer, msg: &Message, cx: &Context) {
                         {
                             "_"
                         }
+                        Some((_path, Container::Message(msg))) if msg.is_empty() => "_",
                         _ => "v",
                     },
                     _ => "v",
@@ -243,57 +244,61 @@ fn generate_encoded_len(buf: &mut Buffer, msg: &Message, cx: &Context) {
                     _ => unreachable!(),
                 };
 
-                let vs =
-                    match value {
-                        FieldType::Bool => "if !v { 0 } else { 1 + 1 }".to_string(),
-                        FieldType::Bytes | FieldType::String => {
-                            "if v.is_empty() { 0 } else { 1 + sizeof_len(v.len()) }".to_string()
-                        }
-                        FieldType::Double => "if *v == 0.0 { 0 } else { 1 + 8 }".to_string(),
-                        FieldType::Float => "if *v == 0.0 { 0 } else { 1 + 4 }".to_string(),
-                        FieldType::Fixed32 | FieldType::Sfixed32 => {
-                            "if *v == 0 { 0 } else { 1 + 4 }".to_string()
-                        }
-                        FieldType::Fixed64 | FieldType::Sfixed64 => {
-                            "if *v == 0 { 0 } else { 1 + 8 }".to_string()
-                        }
-                        FieldType::Uint32 | FieldType::Int64 => {
-                            "if *v == 0 { 0 } else { 1 + sizeof_varint(*v as u64) }".to_string()
-                        }
-                        FieldType::Uint64 => {
-                            "if *v == 0 { 0 } else { 1 + sizeof_varint(*v) }".to_string()
-                        }
-                        FieldType::Int32 => {
-                            "if *v == 0 { 0 } else { 1 + sizeof_int32(*v) }".to_string()
-                        }
-                        FieldType::Sint32 => {
-                            "if *v == 0 { 0 } else { 1 + sizeof_sint32(*v) }".to_string()
-                        }
-                        FieldType::Sint64 => {
-                            "if *v == 0 { 0 } else { 1 + sizeof_sint64(*v) }".to_string()
-                        }
-                        FieldType::Message(typ) => {
-                            match cx.lookup_type(typ) {
-                                Some((_path, Container::Message(msg))) => {
-                                    if msg.is_empty() {
-                                        "0".to_string()
-                                    } else {
-                                        "1 + sizeof_len(v.encoded_len())".to_string()
-                                    }
-                                }
-                                Some((_path, Container::Enum(en))) => {
-                                    match maybe_fixed_size_enum(en) {
-                                    Some(size) => {
-                                        format!("if *v == Default::default() {{ 0 }} else {{ 1 + {size} }}")
-                                    },
-                                    None => "if *v == Default::default() { 0 } else { 1 + sizeof_int32(*v as i32) }".to_string(),
-                                }
-                                }
-                                None => unreachable!(),
+                let vs = match value {
+                    FieldType::Bool => "if !v { 0 } else { 1 + 1 }".to_string(),
+                    FieldType::Bytes | FieldType::String => {
+                        "if v.is_empty() { 0 } else { 1 + sizeof_len(v.len()) }".to_string()
+                    }
+                    FieldType::Double => "if *v == 0.0 { 0 } else { 1 + 8 }".to_string(),
+                    FieldType::Float => "if *v == 0.0 { 0 } else { 1 + 4 }".to_string(),
+                    FieldType::Fixed32 | FieldType::Sfixed32 => {
+                        "if *v == 0 { 0 } else { 1 + 4 }".to_string()
+                    }
+                    FieldType::Fixed64 | FieldType::Sfixed64 => {
+                        "if *v == 0 { 0 } else { 1 + 8 }".to_string()
+                    }
+                    FieldType::Uint32 | FieldType::Int64 => {
+                        "if *v == 0 { 0 } else { 1 + sizeof_varint(*v as u64) }".to_string()
+                    }
+                    FieldType::Uint64 => {
+                        "if *v == 0 { 0 } else { 1 + sizeof_varint(*v) }".to_string()
+                    }
+                    FieldType::Int32 => {
+                        "if *v == 0 { 0 } else { 1 + sizeof_int32(*v) }".to_string()
+                    }
+                    FieldType::Sint32 => {
+                        "if *v == 0 { 0 } else { 1 + sizeof_sint32(*v) }".to_string()
+                    }
+                    FieldType::Sint64 => {
+                        "if *v == 0 { 0 } else { 1 + sizeof_sint64(*v) }".to_string()
+                    }
+                    FieldType::Message(typ) => match cx.lookup_type(typ) {
+                        Some((_path, Container::Message(msg))) => {
+                            if msg.is_empty() {
+                                "0".to_string()
+                            } else {
+                                "1 + sizeof_len(v.encoded_len())".to_string()
                             }
                         }
-                        _ => unreachable!(),
-                    };
+                        Some((path, Container::Enum(en))) => {
+                            let default = format!(
+                                "{path}::{}",
+                                sanitize_variant(&en.name, en.default_value())
+                            );
+
+                            match maybe_fixed_size_enum(en) {
+                                Some(size) => {
+                                    format!("if *v == {default} {{ 0 }} else {{ 1 + {size} }}")
+                                }
+                                None => format!(
+                                    "if *v == {default} {{ 0 }} else {{ 1 + sizeof_int32(*v as i32) }}"
+                                ),
+                            }
+                        }
+                        None => unreachable!(),
+                    },
+                    _ => unreachable!(),
+                };
 
                 buf.push(format!(
                         "{prefix}self.{}.iter().map(|(k, v)| {tag_size} + sizeof_len({} + {})).sum::<usize>()\n",
@@ -387,7 +392,17 @@ fn generate_encode(buf: &mut Buffer, msg: &Message, cx: &Context) {
                     FieldType::Message(typ) => match cx.lookup_type(typ) {
                         Some((_path, Container::Enum(_en))) => {
                             format!("self.{}", snake(&field.name))
-                        }
+                        },
+                        // Maybe enable this
+                        //
+                        // Some((_path, Container::Message(msg))) => {
+                        //     if msg.is_empty() {
+                        //         // We don't need to encode empty message, since
+                        //         // when decoding, default value will be set
+                        //         continue
+                        //     }
+                        //     format!("&self.{}", snake(&field.name))
+                        // }
                         _ => format!("&self.{}", snake(&field.name)),
                     },
                     FieldType::String => format!("self.{}", snake(&field.name)),
@@ -538,57 +553,59 @@ fn generate_encode(buf: &mut Buffer, msg: &Message, cx: &Context) {
                     _ => unreachable!(),
                 };
 
-                let vs =
-                    match value {
-                        FieldType::Bool => "if !v { 0 } else { 1 + 1 }".to_string(),
-                        FieldType::Bytes | FieldType::String => {
-                            "if v.is_empty() { 0 } else { 1 + sizeof_len(v.len()) }".to_string()
+                let vs = match value {
+                    FieldType::Bool => "if !v { 0 } else { 1 + 1 }".to_string(),
+                    FieldType::Bytes | FieldType::String => {
+                        "if v.is_empty() { 0 } else { 1 + sizeof_len(v.len()) }".to_string()
+                    }
+                    FieldType::Double => "if *v == 0.0 { 0 } else { 1 + 8 }".to_string(),
+                    FieldType::Float => "if *v == 0.0 { 0 } else { 1 + 4 }".to_string(),
+                    FieldType::Fixed32 | FieldType::Sfixed32 => {
+                        "if *v == 0 { 0 } else { 1 + 4 }".to_string()
+                    }
+                    FieldType::Fixed64 | FieldType::Sfixed64 => {
+                        "if *v == 0 { 0 } else { 1 + 8 }".to_string()
+                    }
+                    FieldType::Uint32 | FieldType::Int64 => {
+                        "if *v == 0 { 0 } else { 1 + sizeof_varint(*v as u64) }".to_string()
+                    }
+                    FieldType::Uint64 => {
+                        "if *v == 0 { 0 } else { 1 + sizeof_varint(*v) }".to_string()
+                    }
+                    FieldType::Int32 => {
+                        "if *v == 0 { 0 } else { 1 + sizeof_int32(*v) }".to_string()
+                    }
+                    FieldType::Sint32 => {
+                        "if *v == 0 { 0 } else { 1 + sizeof_sint32(*v) }".to_string()
+                    }
+                    FieldType::Sint64 => {
+                        "if *v == 0 { 0 } else { 1 + sizeof_sint64(*v) }".to_string()
+                    }
+                    FieldType::Message(typ) => match cx.lookup_type(typ) {
+                        Some((_path, Container::Message(msg))) => {
+                            if msg.is_empty() {
+                                "0".to_string()
+                            } else {
+                                "match v.encoded_len() { 0 => 0, l => 1 + sizeof_len(l) }"
+                                    .to_string()
+                            }
                         }
-                        FieldType::Double => "if *v == 0.0 { 0 } else { 1 + 8 }".to_string(),
-                        FieldType::Float => "if *v == 0.0 { 0 } else { 1 + 4 }".to_string(),
-                        FieldType::Fixed32 | FieldType::Sfixed32 => {
-                            "if *v == 0 { 0 } else { 1 + 4 }".to_string()
-                        }
-                        FieldType::Fixed64 | FieldType::Sfixed64 => {
-                            "if *v == 0 { 0 } else { 1 + 8 }".to_string()
-                        }
-                        FieldType::Uint32 | FieldType::Int64 => {
-                            "if *v == 0 { 0 } else { 1 + sizeof_varint(*v as u64) }".to_string()
-                        }
-                        FieldType::Uint64 => {
-                            "if *v == 0 { 0 } else { 1 + sizeof_varint(*v) }".to_string()
-                        }
-                        FieldType::Int32 => {
-                            "if *v == 0 { 0 } else { 1 + sizeof_int32(*v) }".to_string()
-                        }
-                        FieldType::Sint32 => {
-                            "if *v == 0 { 0 } else { 1 + sizeof_sint32(*v) }".to_string()
-                        }
-                        FieldType::Sint64 => {
-                            "if *v == 0 { 0 } else { 1 + sizeof_sint64(*v) }".to_string()
-                        }
-                        FieldType::Message(typ) => {
-                            match cx.lookup_type(typ) {
-                                Some((_path, Container::Message(msg))) => {
-                                    if msg.is_empty() {
-                                        "0".to_string()
-                                    } else {
-                                        "1 + sizeof_len(v.encoded_len())".to_string()
-                                    }
-                                }
-                                Some((_path, Container::Enum(en))) => {
-                                    match maybe_fixed_size_enum(en) {
+                        Some((path, Container::Enum(en))) => {
+                            let default = format!("{}::{}", path, en.default_value());
+
+                            match maybe_fixed_size_enum(en) {
                                 Some(size) => {
-                                    format!("if *v == Default::default() {{ 0 }} else {{ 1 + {size} }}")
-                                },
-                                None => "if *v == Default::default() { 0 } else { 1 + sizeof_int32(*v as i32) }".to_string(),
-                            }
+                                    format!("if *v == {default} {{ 0 }} else {{ 1 + {size} }}")
                                 }
-                                None => unreachable!(),
+                                None => format!(
+                                    "if *v == {default} {{ 0 }} else {{ 1 + sizeof_int32(*v as i32) }}"
+                                ),
                             }
                         }
-                        _ => unreachable!(),
-                    };
+                        None => unreachable!(),
+                    },
+                    _ => unreachable!(),
+                };
 
                 // write tag
                 buf.push(format!("buf.write_varint({tag})?;\n"));
@@ -734,6 +751,7 @@ fn type_size(typ: &FieldType, field_name: &str, cx: &Context) -> String {
                     format!("sizeof_varint({field_name} as u64)")
                 }
             },
+            Some((_path, Container::Message(msg))) if msg.is_empty() => "1".to_string(),
             _ => {
                 format!("sizeof_len({field_name}.encoded_len())")
             }
