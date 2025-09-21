@@ -6,11 +6,12 @@ English | [中文](README_cn.md)
 code from `proto2` or `proto3` files.
 
 Compare to other implementations
-- highly optimized code, `prust` calculates everything when generating, so less calculating at runtime
-- zero dependency, `prust` do not need that, no extra bloat
+- Highly optimized code, `prust` calculates everything when generating, so less calculating at runtime
+- Zero dependency, `prust` do not need that, no extra bloat
 - `grpc` is supported by default (with [tonic](https://github.com/hyperium/tonic))
-- less build time, since we don't need to expand proc macros
+- Less build time, since we don't need to expand proc macros
 - `group` is not supported, since it is deprecated too.
+- No more `protoc`, `prust` handles parsing itself. 
 
 ### Sizes
 `prust` generates structs and implements `Deserialize` and `Serialize`,

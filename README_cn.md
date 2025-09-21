@@ -9,7 +9,8 @@
 - 零依赖，`prust` 不依赖任何第三方library，可以降低最终二进制文件的大小
 - 通过生成 [tonic](https://github.com/hyperium/tonic) 兼容的代码，以支持`grpc`
 - 由于没有过程宏，编译速度可以得到一定的提升
-- 不支持`group`， `protobuf` 也不再支持 `group`了
+- 不支持 `group`， `protobuf` 也已经弃用 `group`了
+- 不再需要安装 `protoc`， `prust-build` 解析 `*.proto`
 
 ### 文件大小
 `prust` 生成的文件不仅包含了相应的 `struct` / `enum` 还包含了相应的 `Deserialize` 和 `Serialize` 实现，
