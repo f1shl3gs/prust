@@ -446,7 +446,7 @@ fn generate_encode(buf: &mut Buffer, msg: &Message, cx: &Context) {
                             _ => format!("self.{} != {}", snake(&field.name), default),
                         };
 
-                        buf.push(format!("if {comparison} {{ {write}?; }}\n"));
+                        buf.push(format!("if {comparison} {{ {write}? }}\n"));
                     }
                     None => buf.push(format!("{write}?;\n")),
                 }
