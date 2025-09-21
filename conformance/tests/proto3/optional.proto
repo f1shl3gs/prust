@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package optional;
+
 message TestOptionalProto3 {
   int32 non_optional = 1;
   oneof one {
