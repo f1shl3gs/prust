@@ -190,10 +190,20 @@ impl FieldType {
 
 #[derive(Debug, PartialEq)]
 pub enum Label {
-    Optional = 1,
-    Repeated = 2,
+    Optional,
+    Repeated,
     // The required label is only allowed in google.protobuf. In proto3 and Editions
-    Required = 3,
+    Required,
+}
+
+impl Label {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Label::Optional => "optional",
+            Label::Repeated => "repeated",
+            Label::Required => "required",
+        }
+    }
 }
 
 pub enum FieldCardinality<'a> {
@@ -219,6 +229,34 @@ pub struct Field {
     pub number: u32,
 
     pub options: HashMap<String, String>,
+}
+
+impl Display for Field {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.options.len() > 0 {
+            let options = self.options
+                .iter()
+                .map(|(k, v)| format!("{k} = {v}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            f.write_fmt(format_args!(
+                "{} {} {} = {} [ {} ]",
+                self.label.as_str(),
+                self.typ,
+                self.name,
+                self.number,
+                options
+            ))
+        } else {
+            f.write_fmt(format_args!(
+                "{} {} {} = {}",
+                self.label.as_str(),
+                self.typ,
+                self.name,
+                self.number,
+            ))
+        }
+    }
 }
 
 impl Field {
@@ -278,6 +316,12 @@ pub struct Enum {
     pub name: String,
 
     pub variants: Vec<(String, i32)>,
+}
+
+impl Enum {
+    pub fn default_value(&self) -> &str {
+        &self.variants.first().unwrap().0
+    }
 }
 
 #[derive(Debug)]
