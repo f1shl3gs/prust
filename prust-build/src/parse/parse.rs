@@ -323,7 +323,7 @@ fn parse_field_and_next(
     Ok((name, number, extensions))
 }
 
-fn parse_field(lexer: &mut Lexer, cx: &Context) -> Result<Field, Error> {
+fn parse_field(lexer: &mut Lexer, cx: &Context) -> Result<(FieldType, String, u32, HashMap<String, String>), Error> {
     let typ = FieldType::from(take_ident(lexer)?);
     let name = take_ident(lexer)?.to_string();
 
@@ -372,13 +372,12 @@ fn parse_field(lexer: &mut Lexer, cx: &Context) -> Result<Field, Error> {
         None => return Err(Error::Eof),
     };
 
-    Ok(Field {
-        label: Label::Optional,
+    Ok((
         typ,
         name,
         number,
         options,
-    })
+    ))
 }
 
 fn parse_field_options<'a>(
@@ -679,7 +678,7 @@ fn parse_message(lexer: &mut Lexer, cx: &mut Context) -> Result<Message, Error> 
     let mut messages = vec![];
     let mut options = HashMap::new();
     let mut enums = vec![];
-    let mut oneofs = vec![];
+    let mut oneofs = Vec::<OneOf>::new();
     let mut reserved = vec![];
     let mut extensions = vec![];
 
@@ -706,12 +705,6 @@ fn parse_message(lexer: &mut Lexer, cx: &mut Context) -> Result<Message, Error> 
         if ident == "enum" {
             let enumerator = parse_enum(lexer, cx)?;
             enums.push(enumerator);
-            continue;
-        }
-
-        if ident == "oneof" {
-            let oneof = parse_oneof(lexer, cx)?;
-            oneofs.push(oneof);
             continue;
         }
 
@@ -805,6 +798,13 @@ fn parse_message(lexer: &mut Lexer, cx: &mut Context) -> Result<Message, Error> 
             continue;
         }
 
+        if ident == "oneof" {
+            let oneof = parse_oneof(lexer, cx)?;
+            oneofs.push(oneof);
+            continue;
+        }
+
+        // parse fields
         let label = match cx.syntax {
             Syntax::Proto2 => match ident {
                 "required" => Label::Required,
@@ -818,11 +818,10 @@ fn parse_message(lexer: &mut Lexer, cx: &mut Context) -> Result<Message, Error> 
                 "optional" => Label::Optional,
                 "repeated" => Label::Repeated,
                 "required" => {
-                    return Err(Error::Unexpected {
-                        token: ident.to_string(),
-                        expected: "optional, repeated or map".to_string(),
-                        span,
-                    });
+                    panic!(
+                        "{}",
+                        lexer.diagnostic(span, "`required` is not allowed in proto3")
+                    )
                 }
                 ident => {
                     let typ = FieldType::from(ident);
@@ -843,12 +842,18 @@ fn parse_message(lexer: &mut Lexer, cx: &mut Context) -> Result<Message, Error> 
             _ => panic!("{}", lexer.diagnostic(span, "unknown field")),
         };
 
-        let mut field = parse_field(lexer, cx)?;
-        if field.options.get("deprecated").map(|v| v.as_str()) == Some("true") {
+        let (typ, name, number, options) = parse_field(lexer, cx)?;
+        if options.get("deprecated").map(|v| v.as_str()) == Some("true") {
             continue;
         }
-        field.label = label;
-        fields.push(field);
+
+        fields.push(Field {
+            label,
+            typ,
+            name,
+            number,
+            options,
+        });
     }
 
     Ok(Message {
