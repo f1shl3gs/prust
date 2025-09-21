@@ -6,8 +6,11 @@ pub enum DecodeError {
     Varint,
     // Unknown WireType
     WireType(u8),
+    // Deprecated feature (in protocol buffer specification)
     Deprecated(&'static str),
+    // Unknown variant of enum
     UnknownVariant(&'static str, i32),
+    // utf8 validate error
     Utf8,
 }
 
@@ -638,11 +641,59 @@ impl<'a> Reader<'a> {
             wire_type => return Err(DecodeError::WireType(wire_type)),
         };
 
-        if self.pos + offset > self.src.len() {
-            Err(DecodeError::UnexpectedEof)
+        // meant to prevent overflowing. comparison used is *strictly* lesser,
+        // since `self.src.len()` is given by `len()`; i.e. `self.src.len()`
+        // is 1 more than highest index
+        if self.src.len() - self.pos < offset {
+            Err(DecodeError::Varint)
         } else {
             self.pos += offset;
             Ok(())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn varint() {
+        let data = [0x96, 0x01];
+        let mut reader = Reader::new(&data[..]);
+        let got = reader.read_varint().unwrap();
+        assert_eq!(got, 150);
+        assert_eq!(reader.pos, 2);
+    }
+
+    #[test]
+    fn read_size_overflowing_unknown() {
+        let data = &[
+            200, 250, 35, // varint tag with WIRE_TYPE_VARINT -- 589128
+            //
+            //
+            47, // varint itself
+            //
+            //
+            250, 36, // varint tag with WIRE_TYPE_LENGTH_DELIMITED -- 4730
+            //
+            //
+            255, 255, 255, 255, 255, 255, 255, 255, 255, 3, // huge 10-byte length
+            //
+            //
+            255, 255, 227, // unused extra bytes
+        ];
+
+        let mut reader = Reader::new(data);
+
+        let tag = reader.read_uint32().unwrap();
+        assert_eq!(tag, 589128);
+        reader.read_unknown(tag).unwrap();
+
+        assert_ne!(reader.pos, reader.src.len());
+        let tag = reader.read_uint32().unwrap();
+        assert_eq!(tag, 4730);
+        let err = reader.read_unknown(tag).unwrap_err();
+        assert_eq!(err, DecodeError::Varint);
     }
 }
