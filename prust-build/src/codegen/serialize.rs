@@ -654,7 +654,24 @@ fn generate_encode(buf: &mut Buffer, msg: &Message, cx: &Context) {
         buf.push(format!("match &self.{} {{\n", snake(&oneof.name)));
 
         for variant in &oneof.variants {
-            let tag = variant.tag();
+            let wire_type = match &variant.typ {
+                FieldType::Int32
+                | FieldType::Sint32
+                | FieldType::Int64
+                | FieldType::Sint64
+                | FieldType::Uint32
+                | FieldType::Uint64
+                | FieldType::Bool => 0,
+                FieldType::Fixed64 | FieldType::Sfixed64 | FieldType::Double => 1,
+                FieldType::Message(typ) => match cx.lookup_type(typ) {
+                    Some((_, Container::Enum(_))) => 0,
+                    _ => 2,
+                },
+                FieldType::String | FieldType::Bytes | FieldType::Map(_, _) => 2,
+                FieldType::Fixed32 | FieldType::Sfixed32 | FieldType::Float => 5,
+            };
+            let tag = variant.number << 3 | wire_type;
+
             let field_name = match &variant.typ {
                 FieldType::String | FieldType::Bytes => "v",
                 FieldType::Message(typ) => match cx.lookup_type(typ) {

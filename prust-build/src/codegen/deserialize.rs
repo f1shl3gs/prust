@@ -1,7 +1,6 @@
 use super::Buffer;
 use super::context::{Container, Context};
-use super::generate::generate_default_value;
-use super::sanitize::{sanitize_field, sanitize_type_name, snake, upper_camel};
+use super::sanitize::{sanitize_type_name, snake, upper_camel};
 use crate::ast::{FieldCardinality, FieldType, Message};
 
 pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
@@ -25,7 +24,8 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
         buf.push("Ok(Self::default())\n");
     } else {
         buf.push("let mut buf = Reader::new(src);\n");
-        generate_default_message(buf, msg, cx);
+        // generate_default_message(buf, msg, cx);
+        buf.push("let mut msg: Self = Default::default();\n");
 
         buf.push("while buf.pos < buf.src.len() {\n");
 
@@ -144,11 +144,27 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
 
         for oneof in &msg.oneofs {
             for variant in &oneof.variants {
-                let tag = variant.tag();
+                let wire_type = match &variant.typ {
+                    FieldType::Int32
+                    | FieldType::Sint32
+                    | FieldType::Int64
+                    | FieldType::Sint64
+                    | FieldType::Uint32
+                    | FieldType::Uint64
+                    | FieldType::Bool => 0,
+                    FieldType::Fixed64 | FieldType::Sfixed64 | FieldType::Double => 1,
+                    FieldType::Message(typ) => match cx.lookup_type(typ) {
+                        Some((_, Container::Enum(_))) => 0,
+                        _ => 2,
+                    },
+                    FieldType::String | FieldType::Bytes | FieldType::Map(_, _) => 2,
+                    FieldType::Fixed32 | FieldType::Sfixed32 | FieldType::Float => 5,
+                };
 
                 // todo: handle type properly
                 buf.push(format!(
-                    "        {tag} => msg.{} = Some({}::{}({}?)),\n",
+                    "        {} => msg.{} = Some({}::{}({}?)),\n",
+                    variant.number << 3 | wire_type,
                     snake(&oneof.name),
                     format!("{}::{}", snake(&msg.name), upper_camel(&oneof.name)),
                     upper_camel(&variant.name),
@@ -201,56 +217,6 @@ fn read_field(typ: &FieldType, cx: &Context) -> &'static str {
         },
         FieldType::Map(_, _) => unreachable!("nested maps are not supported by protobuf"),
     }
-}
-
-fn generate_default_message(buf: &mut Buffer, msg: &Message, cx: &Context) {
-    let defaults = msg
-        .fields
-        .iter()
-        .filter(|f| f.default_value().is_some())
-        .count();
-    if defaults == 0 || defaults == msg.fields.len() {
-        // - defaults == 0:
-        //     there is no default field option, use derived Default implement
-        // - defaults == msg.fields.len():
-        //     all fields has default field option, use manually Default implement
-        buf.push("let mut msg = Self::default();\n");
-        return;
-    }
-
-    buf.push(format!("let mut msg = Self {{\n"));
-    let mut default_destruct = false;
-    for field in &msg.fields {
-        let Some(value) = field.default_value() else {
-            default_destruct = true;
-            continue;
-        };
-
-        let default = generate_default_value(field, value, cx);
-        let default = match &field.typ {
-            FieldType::String => format!("String::from({default})"),
-            FieldType::Bytes => format!("Vec::from({default})"),
-            _ => default,
-        };
-        match cx.cardinality(field) {
-            FieldCardinality::Optional => {
-                buf.push(format!(
-                    "    {}: Some({default}),\n",
-                    sanitize_field(&field.name)
-                ));
-            }
-            FieldCardinality::Required => {
-                buf.push(format!("    {}: {default},\n", sanitize_field(&field.name)));
-            }
-            FieldCardinality::Repeated | FieldCardinality::Map(_, _) => {}
-        }
-    }
-
-    if default_destruct {
-        buf.push("    ..Default::default()\n");
-    }
-
-    buf.push("};\n");
 }
 
 // Is the msg is small, and all tag is small enough to use only 1 byte

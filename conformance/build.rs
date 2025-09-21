@@ -16,6 +16,7 @@ fn main() {
             "import_nonunique.proto",
             "import_pkg_nested.proto",
             "import_root.proto",
+            "oneof_default_value.proto",
             "required.proto",
             "sanitize-file-name.proto",
             "special~characters file{name}.proto",
