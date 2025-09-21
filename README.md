@@ -31,19 +31,19 @@ than then expanded code.
         <tr>
             <td rowspan=2>proto2/data_types.proto</td>
             <td> prust </td>
-            <td> 386 </td>
-            <td> 16500 </td>
+            <td> 423 </td>
+            <td> 18054 </td>
         </tr>
         <tr>
             <td> prost </td>
-            <td> 161 </td>
-            <td> 6423 </td>
+            <td> 165 </td>
+            <td> 6571 </td>
         </tr>
         <tr>
             <td rowspan=2> proto3/data_types.proto </td>
             <td> prust </td>
-            <td> 356 </td>
-            <td> 16416 </td>
+            <td> 383 </td>
+            <td> 17540 </td>
         </tr>
         <tr>
             <td> prost </td>
