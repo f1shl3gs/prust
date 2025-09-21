@@ -72,7 +72,7 @@ quick:  1982.27 op/s,   775.76 M/s, 3.03s
 prust:  3259.56 op/s,  1275.62 M/s, 1.84s
 ```
 
-`NOTE`: `prost` seems leak memory, it takes 2.1G to finish our test.
+`NOTE`: `prost` seems leak memory, it takes 2.1G to finish our test, while others takes only 1.1M.
 
 ## Example
 - Add `prust` to `build-dependencies`
@@ -126,4 +126,5 @@ A running example can be found in the [conformance/tests/services/health.rs](con
 
 ## TODO
 - ~~implement default value for map's key and value, which will reduce 
-encoded size and resource usage~~ it hurt the performance a little bit
+encoded size and resource usage~~ it hurt the performance a little bit.
+- it seems that access data via `*const u8` is better than `slice[pos]`, more test needed. 

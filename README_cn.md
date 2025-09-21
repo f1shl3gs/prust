@@ -12,7 +12,7 @@
 - 不支持`group`， `protobuf` 也不再支持 `group`了
 
 ### 文件大小
-`prust` 生成的文件不仅包含了相应的 `struct` 还包含了对应的 `Deserialize` 和 `Serialize` 实现，
+`prust` 生成的文件不仅包含了相应的 `struct` / `enum` 还包含了相应的 `Deserialize` 和 `Serialize` 实现，
 因此生成的文件将会比 `prost` 生成的文件大一些， 但是依旧比 `prost` 过程宏生成的代码小。 
 
 <table>
@@ -68,7 +68,7 @@ quick:  1982.27 op/s,   775.76 M/s, 3.03s
 prust:  3259.56 op/s,  1275.62 M/s, 1.84s
 ```
 
-`NOTE`： `prost` 似乎发生了内存泄漏，在运行时使用了 2.1G 内存。
+`NOTE`： `prost` 似乎发生了内存泄漏，在运行时使用了 2.1G 内存，其它的只使用约 1.1M。
 
 ## 示例
 - 添加 `prust` 到 `build-dependencies`
@@ -119,3 +119,4 @@ fn main() {
 
 ## TODO
 - ~~实现 map 的 key/value 的默认值检查，以生成更小的二进制数据，降低CPU资源消耗~~ 编/解码性能有所下降
+- 使用 `*const u8` 似乎比 `slice[pos]` 性能更好，还需要更多的测试验证。
