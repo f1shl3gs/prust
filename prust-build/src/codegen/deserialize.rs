@@ -158,9 +158,7 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
         }
 
         if small_message(msg, cx) {
-            buf.push("        tag => if tag < 0x80 {\n");
-            buf.push("            buf.read_unknown(tag)?;\n");
-            buf.push("        } else {\n");
+            buf.push("        _ => {\n");
             buf.push("            buf.pos -= 1;\n");
             buf.push("            let tag = buf.read_uint32()?;\n");
             buf.push("            buf.read_unknown(tag)?;\n");
