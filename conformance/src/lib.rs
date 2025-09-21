@@ -23,7 +23,12 @@ macro_rules! fuzz {
                     let orig = prust::$typ::arbitrary(&mut unstructured).unwrap();
                     let calculated = orig.encoded_len();
                     let mut buf = vec![0u8; calculated];
-                    let written = orig.encode(&mut buf).unwrap();
+                    let written = match orig.encode(&mut buf) {
+                        Ok(written) => written,
+                        Err(err) => {
+                            panic!("encode original random data failed, {}", err);
+                        }
+                    };
 
                     assert_eq!(calculated, written, "calculated length is not equal to written\n{:?}", orig);
 
@@ -42,7 +47,6 @@ macro_rules! fuzz {
                             panic!("{err}")
                         }
                     };
-
                 }
             }
         }
