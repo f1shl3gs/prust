@@ -1,5 +1,5 @@
 mod proto {
-    include!("prust.rs");
+    include!("../src/prust/perf.rs");
 }
 
 const INPUT: &[u8; 410357] = include_bytes!("../proto/perf.data");

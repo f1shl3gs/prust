@@ -1,6 +1,8 @@
 mod quick;
 
-mod prust;
+mod prust {
+    include!("prust/perf.rs");
+}
 
 mod prost {
     #![allow(dead_code)]

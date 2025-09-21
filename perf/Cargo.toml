@@ -5,7 +5,7 @@ edition = "2024"
 
 [[bin]]
 name = "profile"
-path = "src/profile.rs"
+path = "profile/main.rs"
 
 [[bin]]
 name = "prw"

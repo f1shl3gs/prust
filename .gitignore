@@ -1,0 +1,23 @@
+# IDE
+/.idea/
+.vscode
+
+# build
+/target/
+
+conformance/tests/proto2/prost
+conformance/tests/proto2/prust
+conformance/tests/proto2/quick
+
+conformance/tests/proto3/prost
+conformance/tests/proto3/prust
+
+conformance/tests/services/prost
+conformance/tests/services/prust
+conformance/tests/services/tonic
+
+perf/src/prost
+perf/src/prust
+
+perf/prw/prost
+perf/prw/prust
