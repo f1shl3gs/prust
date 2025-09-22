@@ -471,7 +471,7 @@ fn lookup<'a, 'b>(
 }
 
 // a little optimize for enums which don't have dynamic size
-fn maybe_fixed_size_enum(en: &Enum) -> Option<usize> {
+pub fn maybe_fixed_size_enum(en: &Enum) -> Option<usize> {
     let mut values = en.variants.iter().map(|(_variant, value)| value);
     let size = sizeof_varint(*values.next()? as u64);
 

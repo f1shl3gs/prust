@@ -1,8 +1,8 @@
 use super::Buffer;
-use super::context::{Container, Context};
+use super::context::{Container, Context, maybe_fixed_size_enum};
 use super::sanitize::{sanitize_type_name, sanitize_variant, snake, upper_camel};
 use super::sizeof::sizeof_varint;
-use crate::ast::{Enum, FieldCardinality, FieldType, Message};
+use crate::ast::{FieldCardinality, FieldType, Message};
 
 fn generate_encoded_len(buf: &mut Buffer, msg: &Message, cx: &Context) {
     if msg.fields.is_empty() && msg.oneofs.is_empty() {
@@ -775,20 +775,6 @@ fn type_size(typ: &FieldType, field_name: &str, cx: &Context) -> String {
         },
         _ => unreachable!(),
     }
-}
-
-// a little optimize for enums which don't have dynamic size
-fn maybe_fixed_size_enum(en: &Enum) -> Option<usize> {
-    let mut values = en.variants.iter().map(|(_variant, value)| value);
-    let size = sizeof_varint(*values.next()? as u64);
-
-    for other in values {
-        if size != sizeof_varint(*other as u64) {
-            return None;
-        }
-    }
-
-    Some(size)
 }
 
 fn encode_type(typ: &FieldType, field_name: &str, tag: u32, cx: &Context) -> String {
