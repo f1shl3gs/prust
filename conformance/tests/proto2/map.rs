@@ -29,7 +29,6 @@ fn generate() {
 }
 
 mod prust {
-    #![allow(unused_variables)]
     include!("prust/map.rs");
 }
 
