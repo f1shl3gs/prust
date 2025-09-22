@@ -1,6 +1,8 @@
 use super::context::{Container, Context};
 use super::deserialize::generate_deserialize;
-use super::sanitize::{sanitize_field, sanitize_filepath, sanitize_type, sanitize_type_name, sanitize_variant};
+use super::sanitize::{
+    sanitize_field, sanitize_filepath, sanitize_type, sanitize_type_name, sanitize_variant,
+};
 use super::sanitize::{snake, upper_camel};
 use super::serialize::generate_serialize;
 use crate::Error;
@@ -155,7 +157,11 @@ fn generate_simple_struct(buf: &mut Buffer, msg: &Message, cx: &Context) {
             }
         };
 
-        buf.push(format!("    pub {}: {},\n", sanitize_field(&field.name), typ));
+        buf.push(format!(
+            "    pub {}: {},\n",
+            sanitize_field(&field.name),
+            typ
+        ));
     }
 
     for oneof in &msg.oneofs {
@@ -217,8 +223,13 @@ fn generate_struct_default(buf: &mut Buffer, msg: &Message, cx: &Context) {
                     continue;
                 }
 
-                if let FieldType::Message(typ) = &field.typ && let Some((path, Container::Enum(en))) = cx.lookup_type(typ) {
-                    buf.push(format!("        {field_name}: {path}::{},\n", sanitize_variant(&en.name, en.default_value())));
+                if let FieldType::Message(typ) = &field.typ
+                    && let Some((path, Container::Enum(en))) = cx.lookup_type(typ)
+                {
+                    buf.push(format!(
+                        "        {field_name}: {path}::{},\n",
+                        sanitize_variant(&en.name, en.default_value())
+                    ));
                 } else {
                     buf.push(format!("        {field_name}: Default::default(),\n"));
                 }

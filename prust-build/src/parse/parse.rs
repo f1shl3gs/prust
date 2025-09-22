@@ -323,7 +323,10 @@ fn parse_field_and_next(
     Ok((name, number, extensions))
 }
 
-fn parse_field(lexer: &mut Lexer, cx: &Context) -> Result<(FieldType, String, u32, HashMap<String, String>), Error> {
+fn parse_field(
+    lexer: &mut Lexer,
+    cx: &Context,
+) -> Result<(FieldType, String, u32, HashMap<String, String>), Error> {
     let typ = FieldType::from(take_ident(lexer)?);
     let name = take_ident(lexer)?.to_string();
 
@@ -372,12 +375,7 @@ fn parse_field(lexer: &mut Lexer, cx: &Context) -> Result<(FieldType, String, u3
         None => return Err(Error::Eof),
     };
 
-    Ok((
-        typ,
-        name,
-        number,
-        options,
-    ))
+    Ok((typ, name, number, options))
 }
 
 fn parse_field_options<'a>(

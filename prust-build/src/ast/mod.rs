@@ -234,7 +234,8 @@ pub struct Field {
 impl Display for Field {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.options.len() > 0 {
-            let options = self.options
+            let options = self
+                .options
                 .iter()
                 .map(|(k, v)| format!("{k} = {v}"))
                 .collect::<Vec<_>>()
