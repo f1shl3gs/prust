@@ -224,6 +224,7 @@ fn generate_encoded_len(buf: &mut Buffer, msg: &Message, cx: &Context) {
             FieldCardinality::Map(key, value) => {
                 let tag = field.number << 3 | field.typ.wire_type();
                 let tag_size = sizeof_varint(tag as u64);
+                let mut value_arg = "v";
 
                 let ks = match key {
                     FieldType::Bool => "if !k { 0 } else { 1 + 1 }",
@@ -275,6 +276,7 @@ fn generate_encoded_len(buf: &mut Buffer, msg: &Message, cx: &Context) {
                     FieldType::Message(typ) => match cx.lookup_type(typ) {
                         Some((_path, Container::Message(msg))) => {
                             if msg.is_empty() {
+                                value_arg = "_";
                                 "0".to_string()
                             } else {
                                 "1 + sizeof_len(v.encoded_len())".to_string()
@@ -301,11 +303,9 @@ fn generate_encoded_len(buf: &mut Buffer, msg: &Message, cx: &Context) {
                 };
 
                 buf.push(format!(
-                        "{prefix}self.{}.iter().map(|(k, v)| {tag_size} + sizeof_len({} + {})).sum::<usize>()\n",
-                        snake(&field.name),
-                        ks,
-                        vs,
-                    ))
+                    "{prefix}self.{}.iter().map(|(k, {value_arg})| {tag_size} + sizeof_len({ks} + {vs})).sum::<usize>()\n",
+                    snake(&field.name),
+                ))
             }
         }
     }
@@ -392,7 +392,7 @@ fn generate_encode(buf: &mut Buffer, msg: &Message, cx: &Context) {
                     FieldType::Message(typ) => match cx.lookup_type(typ) {
                         Some((_path, Container::Enum(_en))) => {
                             format!("self.{}", snake(&field.name))
-                        },
+                        }
                         // Maybe enable this
                         //
                         // Some((_path, Container::Message(msg))) => {
