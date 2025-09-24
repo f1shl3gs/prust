@@ -9,7 +9,7 @@ mod prost {
 #[test]
 fn default() {
     let foo = prust::Foo {
-        first: prust::State::default(),
+        first: None,
         second: prust::State::default(),
     };
 

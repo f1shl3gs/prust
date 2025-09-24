@@ -9,7 +9,7 @@ fn build() {
     let _ = proto::TestOptionalProto3 {
         non_optional: 1,
         one: Some(proto::test_optional_proto3::One::OneField1("1".to_string())),
-        iii: 1,
-        sss: "foo".to_string(),
+        iii: Some(1),
+        sss: Some("foo".to_string()),
     };
 }

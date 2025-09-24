@@ -11,7 +11,7 @@ fn build() {
     let _foo = prust::Foo {
         bar: Some(prust::Bar {
             foo: "".to_string(),
-            foo1: "".to_string(),
+            foo1: Some("".to_string()),
         }),
         foo: Some(Box::new(prust::Foo {
             bar: None,

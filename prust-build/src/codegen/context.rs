@@ -247,13 +247,6 @@ impl Context<'_> {
             return FieldCardinality::Repeated;
         }
 
-        // let's think about something like below in `proto2`
-        // ``` optional bool state = 1 [ default = true ]; ```
-        // when encoding, `None` will do nothing, but it will be decoding to `Some(true)`.
-        // and of cause `Some(true)` is will be ignored, because it is the default value.
-        // What is the meaning of `None` and what it is represented for ???
-        //
-        // So, the `optional` field with a default value will be treated as `required`
         match self.fd.syntax {
             Syntax::Proto2 => match field.label {
                 Label::Required => FieldCardinality::Required,
@@ -266,27 +259,42 @@ impl Context<'_> {
                 }
                 _ => unreachable!(),
             },
-            Syntax::Proto3 => match &field.typ {
-                FieldType::Message(typ) => match self.lookup_type(typ) {
-                    Some((_, Container::Enum(_))) => FieldCardinality::Required,
-                    _ => FieldCardinality::Optional,
-                },
-                FieldType::Map(_, _) => unreachable!(),
-                FieldType::Double
-                | FieldType::Float
-                | FieldType::Int64
-                | FieldType::Uint64
-                | FieldType::Int32
-                | FieldType::Fixed64
-                | FieldType::Fixed32
-                | FieldType::Bool
-                | FieldType::String
-                | FieldType::Bytes
-                | FieldType::Uint32
-                | FieldType::Sfixed32
-                | FieldType::Sfixed64
-                | FieldType::Sint32
-                | FieldType::Sint64 => FieldCardinality::Required,
+            Syntax::Proto3 => {
+                // implicit: (not recommended) An implicit field has no explicit cardinality label and behaves as follows:
+                //     if the field is a message type, it behaves just like an optional field.
+                //     if the field is not a message, it has two states:
+                //         the field is set to a non-default (non-zero) value that was explicitly set or parsed from the
+                //         wire. It will be serialized to the wire.
+                //
+                //         the field is set to the default (zero) value. It will not be serialized to the wire. In fact,
+                //         you cannot determine whether the default (zero) value was set or parsed from the wire or not
+                //         provided at all. For more on this subject, see Field Presence.
+                if field.label == Label::Optional {
+                    return FieldCardinality::Optional;
+                }
+
+                match &field.typ {
+                    FieldType::Message(typ) => match self.lookup_type(typ) {
+                        Some((_, Container::Enum(_))) => FieldCardinality::Required,
+                        _ => FieldCardinality::Optional,
+                    },
+                    FieldType::Double
+                    | FieldType::Float
+                    | FieldType::Int64
+                    | FieldType::Uint64
+                    | FieldType::Int32
+                    | FieldType::Fixed64
+                    | FieldType::Fixed32
+                    | FieldType::Bool
+                    | FieldType::String
+                    | FieldType::Bytes
+                    | FieldType::Uint32
+                    | FieldType::Sfixed32
+                    | FieldType::Sfixed64
+                    | FieldType::Sint32
+                    | FieldType::Sint64 => FieldCardinality::Required,
+                    FieldType::Map(_, _) => unreachable!(),
+                }
             },
             _ => unreachable!(),
         }

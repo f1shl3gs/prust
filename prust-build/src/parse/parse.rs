@@ -826,7 +826,7 @@ fn parse_message(lexer: &mut Lexer, cx: &mut Context) -> Result<Message, Error> 
                     let (name, number, options) = parse_field_and_next(lexer, cx)?;
                     if options.get("deprecated").map(|x| x.as_str()) != Some("true") {
                         fields.push(Field {
-                            label: Label::Optional,
+                            label: Label::Required,
                             typ,
                             name,
                             number,
