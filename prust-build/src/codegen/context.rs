@@ -80,13 +80,10 @@ impl Context<'_> {
         for (path, fd) in self.imports {
             let pkg = match fd.package.as_ref() {
                 Some(pkg) => pkg,
-                None => path.strip_suffix(".proto").unwrap_or_else(|| path),
+                None => path.strip_suffix(".proto").unwrap_or(path),
             };
 
-            let stripped = match typ.strip_prefix(&format!("{pkg}.")) {
-                Some(stripped) => stripped,
-                None => typ,
-            };
+            let stripped = typ.strip_prefix(&format!("{pkg}.")).unwrap_or(typ);
 
             let mut segments = stripped.split('.');
             let first = segments.next().unwrap();
