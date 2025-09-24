@@ -8,6 +8,13 @@ use super::{Buffer, ServiceGenerator};
 use crate::ast::FileDescriptor;
 use crate::{Error, parse};
 
+#[derive(Debug, Default)]
+pub enum MapType {
+    #[default]
+    HashMap,
+    BTreeMap,
+}
+
 pub struct Config {
     output: Option<PathBuf>,
     filename: Option<String>,
@@ -18,6 +25,7 @@ pub struct Config {
     pub(crate) message_attributes: HashMap<String, Vec<String>>,
     pub(crate) enum_attributes: HashMap<String, Vec<String>>,
     pub(crate) oneof_attributes: HashMap<String, Vec<String>>,
+    pub(crate) tree_map: HashMap<String, MapType>,
 
     pub(crate) service_generator: Option<Box<dyn ServiceGenerator>>,
 }
@@ -33,6 +41,7 @@ impl Default for Config {
             message_attributes: Default::default(),
             enum_attributes: Default::default(),
             oneof_attributes: Default::default(),
+            tree_map: Default::default(),
             service_generator: None,
         }
     }
@@ -85,6 +94,31 @@ impl Config {
                 attrs.dedup();
             })
             .or_insert_with(|| vec![attribute.to_string()]);
+        self
+    }
+
+    pub fn btree_map<I, S>(&mut self, paths: I) -> &mut Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        for path in paths {
+            self.tree_map
+                .insert(path.as_ref().to_string(), MapType::BTreeMap);
+        }
+
+        self
+    }
+
+    pub fn hashmap<I, S>(&mut self, paths: I) -> &mut Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        for path in paths {
+            self.tree_map.insert(path.as_ref().to_string(), MapType::HashMap);
+        }
+
         self
     }
 

@@ -39,6 +39,14 @@ fn main() {
     // services
     compile("tests/services", &["health.proto", "example.proto"]);
 
+    // custom map
+    prust_build::Config::default()
+        .btree_map(&["different_map_type.Data.btreemap"])
+        .btree_map(&["different_map_type.Data.Inner.btreemap"])
+        .output("tests/proto3/prust")
+        .compile(&[], &["tests/proto3/different_map_type.proto"])
+        .unwrap();
+
     tonic_prost_build::configure()
         .out_dir("tests/services/tonic")
         .compile_protos(&["tests/services/health.proto"], &["tests/services"])

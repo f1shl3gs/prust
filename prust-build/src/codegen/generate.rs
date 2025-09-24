@@ -8,6 +8,7 @@ use super::serialize::generate_serialize;
 use crate::Error;
 use crate::ast::{Enum, Field, FieldCardinality, FieldType, Message, OneOf};
 use crate::codegen::Buffer;
+use crate::codegen::config::MapType;
 use crate::codegen::service::generate_service;
 
 pub fn generate_proto<'a>(buf: &mut Buffer, cx: &mut Context<'a>) -> Result<(), Error> {
@@ -149,8 +150,18 @@ fn generate_simple_struct(buf: &mut Buffer, msg: &Message, cx: &Context) {
                 format!("Vec<{typ}>")
             }
             FieldCardinality::Map(key, value) => {
+                let path = match &cx.fd.package {
+                    Some(pkg) => format!("{}.{}.{}", pkg, cx.path(), field.name),
+                    None => format!("{}.{}", cx.path(), field.name)
+                };
+                let map_type = match cx.config.tree_map.get(&path) {
+                    Some(MapType::BTreeMap) => "BTreeMap",
+                    _ => "HashMap",
+                };
+
                 format!(
-                    "std::collections::BTreeMap<{}, {}>",
+                    "std::collections::{}<{}, {}>",
+                    map_type,
                     generate_field_type(key, cx),
                     generate_field_type(value, cx)
                 )
