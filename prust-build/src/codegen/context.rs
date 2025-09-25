@@ -119,7 +119,7 @@ impl Context<'_> {
     }
 
     pub fn tag(&self, field: &Field) -> u32 {
-        let wire_type = if self.packed(field) {
+        let wire_type = if self.packed(field) && field.label == Label::Repeated {
             2
         } else {
             match &field.typ {
