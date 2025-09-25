@@ -80,7 +80,7 @@ message SelfReference {
 
 message Data {
   required State state = 1;
-  repeated State states = 2;
+  repeated State states = 2 [ packed = true ];
 
   required Simple simple = 3;
   repeated Simple simples = 4;

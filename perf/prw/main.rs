@@ -6,13 +6,13 @@ mod prust {
     #![allow(unused_variables)]
     #![allow(dead_code)]
 
-    include!("prometheus.rs");
+    include!("prust/prometheus.rs");
 }
 
 mod prost {
     #![allow(dead_code)]
 
-    include!(concat!(env!("OUT_DIR"), "/prometheus.rs"));
+    include!("prost/prometheus.rs");
 }
 
 mod quick;
