@@ -40,43 +40,47 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
         for field in &msg.fields {
             let mut tag = cx.tag(field);
 
-            let assignment = match cx.cardinality(field) {
-                FieldCardinality::Optional => match &field.typ {
-                    FieldType::Message(typ) => match cx.lookup_type(typ) {
-                        Some((_path, Container::Message(_))) => {
-                            if &msg.name == typ {
-                                format!(
-                                    "msg.{} = Some(Box::new({}?))",
-                                    snake(&field.name),
-                                    read_field(&field.typ, cx)
-                                )
-                            } else {
+            match cx.cardinality(field) {
+                FieldCardinality::Optional => {
+                    let assignment = match &field.typ {
+                        FieldType::Message(typ) => match cx.lookup_type(typ) {
+                            Some((_path, Container::Message(_))) => {
+                                if &msg.name == typ {
+                                    format!(
+                                        "msg.{} = Some(Box::new({}?))",
+                                        snake(&field.name),
+                                        read_field(&field.typ, cx)
+                                    )
+                                } else {
+                                    format!(
+                                        "msg.{} = Some({}?)",
+                                        snake(&field.name),
+                                        read_field(&field.typ, cx)
+                                    )
+                                }
+                            }
+                            Some((_path, Container::Enum(_))) => {
+                                tag = field.number << 3 | 0;
+                                format!("msg.{} = Some(buf.read_enum()?)", snake(&field.name),)
+                            }
+                            None => {
                                 format!(
                                     "msg.{} = Some({}?)",
                                     snake(&field.name),
                                     read_field(&field.typ, cx)
                                 )
                             }
-                        }
-                        Some((_path, Container::Enum(_))) => {
-                            tag = field.number << 3 | 0;
-                            format!("msg.{} = Some(buf.read_enum()?)", snake(&field.name),)
-                        }
-                        None => {
+                        },
+                        _ => {
                             format!(
                                 "msg.{} = Some({}?)",
                                 snake(&field.name),
                                 read_field(&field.typ, cx)
                             )
                         }
-                    },
-                    _ => {
-                        format!(
-                            "msg.{} = Some({}?)",
-                            snake(&field.name),
-                            read_field(&field.typ, cx)
-                        )
-                    }
+                    };
+
+                    buf.push(format!("        {tag} => {assignment},\n"));
                 },
                 FieldCardinality::Required => {
                     if let FieldType::Message(typ) = &field.typ
@@ -86,14 +90,10 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
                         tag = field.number << 3 | 0;
                     }
 
-                    format!(
-                        "msg.{} = {}?",
-                        snake(&field.name),
-                        read_field(&field.typ, cx)
-                    )
+                    buf.push(format!("        {tag} => msg.{} = {}?,\n", snake(&field.name), read_field(&field.typ, cx)));
                 }
                 FieldCardinality::Repeated => {
-                    if cx.packed(field) {
+                    let assignment = if cx.packed(field) {
                         tag = field.number << 3 | 2;
 
                         if field.typ.fixed_size().is_some() {
@@ -111,35 +111,50 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
                             snake(&field.name),
                             read_field(&field.typ, cx)
                         )
-                    }
+                    };
+
+                    buf.push(format!("        {tag} => {assignment},\n"));
                 }
                 FieldCardinality::Map(key, value) => {
-                    format!(
-                        "buf.read_map(&mut msg.{}, {}, {})?",
-                        snake(&field.name),
-                        cx.read_func(key),
-                        cx.read_func(value)
-                    )
+                    buf.indent += 2;
+                    buf.push(format!("{tag} => {{\n"));
+                    buf.indent += 1;
+                    buf.push("let len = buf.read_varint()? as usize;\n");
+                    buf.push("let end = std::cmp::min(buf.pos + len, buf.src.len());\n");
 
-                    // buf.push(format!("        {tag} => {{\n"));
-                    // buf.push("            let _len = buf.read_varint32()?;\n");
-                    // buf.push("            let _typ = buf.read_varint32()? >> 3;\n");
-                    // buf.push(format!("            let k = {}?;\n", read_field(&key, cx)));
-                    // buf.push("            let _typ = buf.read_varint32()? >> 3;\n");
-                    // buf.push(format!(
-                    //     "            let v = {}?;\n",
-                    //     read_field(&value, cx)
-                    // ));
-                    // buf.push(format!(
-                    //     "        msg.{}.insert(k, v);\n",
-                    //     snake(&field.name)
-                    // ));
-                    // buf.push("        }\n");
-                    // continue;
+                    buf.push("let mut key = Default::default();\n");
+                    buf.push("let mut value = Default::default();\n");
+                    buf.push("while buf.pos < end {\n");
+                    buf.push("    let num = buf.src[buf.pos];\n");
+                    buf.push("    buf.pos += 1;\n");
+                    buf.push("    match num {\n");
+                    buf.push(format!("        {} => key = {}?,\n", 1 << 3 | key.wire_type(), read_field(&key, cx)));
+                    let value_wire_type = match value {
+                        FieldType::Int32
+                        | FieldType::Sint32
+                        | FieldType::Int64
+                        | FieldType::Sint64
+                        | FieldType::Uint32
+                        | FieldType::Uint64
+                        | FieldType::Bool => 0,
+                        FieldType::Message(typ) => match cx.lookup_type(typ) {
+                            Some((_path, Container::Enum(_en))) => 0,
+                            _ => 2,
+                        },
+                        FieldType::Fixed64 | FieldType::Sfixed64 | FieldType::Double => 1,
+                        FieldType::String | FieldType::Bytes | FieldType::Map(_, _) => 2,
+                        FieldType::Fixed32 | FieldType::Sfixed32 | FieldType::Float => 5,
+                    };
+                    buf.push(format!("        {} => value = {}?,\n", 2 << 3 | value_wire_type, read_field(&value, cx)));
+                    buf.push("        _ => return Err(DecodeError::Varint),\n");
+                    buf.push("    }\n");
+                    buf.push("}\n");
+                    buf.push(format!("msg.{}.insert(key, value);\n", snake(&field.name)));
+                    buf.indent -= 1;
+                    buf.push("}\n");
+                    buf.indent -= 2;
                 }
-            };
-
-            buf.push(format!("        {tag} => {assignment},\n"));
+            }
         }
 
         for oneof in &msg.oneofs {

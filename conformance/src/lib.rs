@@ -37,6 +37,8 @@ macro_rules! fuzz {
                     // f64 and f32 cannot be compared
                     let a = serde_json::to_string(&orig).unwrap();
                     let b = serde_json::to_string(&out).unwrap();
+                    let a = serde_json::from_str::<serde_json::Value>(&a).unwrap();
+                    let b = serde_json::from_str::<serde_json::Value>(&b).unwrap();
                     assert_eq!(a, b, "decoded is not equal to the original one");
 
                     let out = match prost::$typ::decode(buf.as_slice()) {

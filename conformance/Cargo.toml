@@ -22,4 +22,5 @@ prost = { version = "0.14" }
 rand = { version = "0.9" }
 prust = { path = "../prust", features = ["tonic"] }
 tonic = { version = "0.14" }
+serde_json = { version = "1.0" }
 tonic-prost = { version = "0.14" }

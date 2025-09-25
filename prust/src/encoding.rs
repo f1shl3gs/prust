@@ -548,37 +548,6 @@ impl<'a> Reader<'a> {
 
         Ok(msg)
     }
-    pub fn read_map<K: Default + Ord, V: Default>(
-        &mut self,
-        dst: &mut std::collections::BTreeMap<K, V>,
-        read_key: impl Fn(&mut Self) -> Result<K, DecodeError>,
-        read_value: impl Fn(&mut Self) -> Result<V, DecodeError>,
-    ) -> Result<(), DecodeError> {
-        let len = self.read_varint()? as usize;
-        let end = std::cmp::min(self.pos + len, self.src.len());
-
-        let mut key: K = Default::default();
-        let mut value: V = Default::default();
-        while self.pos < end {
-            // read_variant32 should be called, but max tag 2 << 3 | 5 is only 21
-            // is way less than 127, a single u8 is enough to store,
-            // and the size is already checked by the `while` condition, so
-            // we can just read it without any bound checking and compiler will
-            // eliminate it too.
-            let num = self.src[self.pos] >> 3;
-            self.pos += 1;
-
-            match num {
-                1 => key = read_key(self)?,
-                2 => value = read_value(self)?,
-                _ => return Err(DecodeError::Varint),
-            }
-        }
-
-        dst.insert(key, value);
-
-        Ok(())
-    }
     pub fn read_packed<T>(
         &mut self,
         mut read: impl FnMut(&mut Reader) -> Result<T, DecodeError>,

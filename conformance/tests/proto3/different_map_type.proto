@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package different_map_type;
+
+message Data {
+  map<string, int32> btreemap = 1;
+  map<string, int32> hashmap = 2;
+
+  message Inner {
+    map<string, int32> btreemap = 1;
+    map<string, int32> hashmap = 2;
+  }
+
+  Inner inner = 3;
+}
