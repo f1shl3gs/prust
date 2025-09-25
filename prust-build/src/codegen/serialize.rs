@@ -74,14 +74,11 @@ fn generate_encoded_len(buf: &mut Buffer, msg: &Message, cx: &Context) {
                 match cx.default_value(field).as_ref() {
                     Some(default) => {
                         let comparison = match (&field.typ, default.as_str()) {
-                            (FieldType::Bool, value) => {
-                                if value == "true" {
-                                    format!("!self.{}", snake(&field.name))
-                                } else if value == "false" {
-                                    format!("self.{}", snake(&field.name))
-                                } else {
-                                    unreachable!()
-                                }
+                            (FieldType::Bool, "true") => {
+                                format!("!self.{}", snake(&field.name))
+                            },
+                            (FieldType::Bool, "false") => {
+                                format!("self.{}", snake(&field.name))
                             }
                             (FieldType::Double | FieldType::Float, value) => {
                                 if value == "f32::NAN" || value == "f64::NAN" {
