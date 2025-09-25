@@ -203,7 +203,6 @@ impl<'a> Writer<'a> {
             return Err(EncodeError::UnexpectedEof);
         }
 
-        let v = v as u32;
         self.buf[self.pos] = v as u8 | 0x80;
         self.buf[self.pos + 1] = (v >> 7) as u8 | 0x80;
         self.buf[self.pos + 2] = (v >> 14) as u8 | 0x80;
@@ -230,7 +229,7 @@ impl<'a> Writer<'a> {
             if self.pos + 1 > self.buf.len() {
                 return Err(EncodeError::UnexpectedEof);
             }
-            self.buf[self.pos] = (v as u8 & 0x7f) | 0x80;
+            self.buf[self.pos] = (v as u8) | 0x80;
             self.pos += 1;
 
             v >>= 7;
