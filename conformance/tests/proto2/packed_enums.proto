@@ -1,0 +1,21 @@
+syntax = "proto2";
+
+package packed_enums;
+
+enum State {
+  Off = 0;
+  On = 1;
+}
+
+enum LargeState {
+  No = 0;
+  Yes = 128;
+}
+
+message Data {
+  repeated State non_packed = 1 [ packed = false ];
+  repeated State packed = 2 [ packed = true ];
+
+  repeated LargeState large_non_packed = 3 [ packed = false ];
+  repeated LargeState large_packed = 4 [ packed = true ];
+}
