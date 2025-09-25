@@ -56,6 +56,17 @@ macro_rules! fuzz {
                             panic!("{err}")
                         }
                     };
+
+                    // the fields order is not sequenced, compare encoded data to prost
+                    // will fail if there are oneofs in the message.
+/*
+                    let encoded = out.encode_to_vec();
+                    assert_eq!(
+                        encoded, &buf[..written],
+                        "prost encoded data is not equal to prust encoded\norig: {:?}\nout:  {:?}",
+                        orig, out,
+                    );
+                    */
                 }
             }
         }
