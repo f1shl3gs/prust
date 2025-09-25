@@ -184,8 +184,12 @@ fn generate_encoded_len(buf: &mut Buffer, msg: &Message, cx: &Context) {
                 };
 
                 if cx.packed(field) {
-                    let sizeof = match field.typ.fixed_size() {
-                        Some(size) => format!("self.{}.len() * {}", snake(&field.name), size),
+                    let sizeof = match cx.maybe_fixed_size(&field.typ) {
+                        Some(size) => if size != 1 {
+                            format!("self.{}.len() * {}", snake(&field.name), size)
+                        } else {
+                            format!("self.{}.len()", snake(&field.name))
+                        },
                         None => format!(
                             "self.{}.iter().map(|v| {}).sum::<usize>()",
                             snake(&field.name),
@@ -462,7 +466,7 @@ fn generate_encode(buf: &mut Buffer, msg: &Message, cx: &Context) {
                 };
 
                 if cx.packed(field) {
-                    if field.typ.fixed_size().is_some() {
+                    if cx.maybe_fixed_size(&field.typ).is_some() {
                         buf.push(format!(
                             "buf.write_packed_fixed({tag}, &self.{})?;\n",
                             snake(&field.name),

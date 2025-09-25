@@ -96,7 +96,7 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
                     let assignment = if cx.packed(field) {
                         tag = field.number << 3 | 2;
 
-                        if field.typ.fixed_size().is_some() {
+                        if cx.maybe_fixed_size(&field.typ).is_some() {
                             format!("msg.{} = buf.read_packed_fixed()?", snake(&field.name),)
                         } else {
                             format!(

@@ -144,32 +144,33 @@ impl Context<'_> {
     }
 
     pub fn packed(&self, field: &Field) -> bool {
-        if field.label != Label::Repeated {
-            return false;
-        }
-
-        match self.fd.syntax {
-            Syntax::Proto2 => Some("true") == field.options.get("packed").map(|v| v.as_str()),
-            Syntax::Proto3 => {
+        match &field.typ {
+            // scalars
+            FieldType::Double
+            | FieldType::Float
+            | FieldType::Int64
+            | FieldType::Uint64
+            | FieldType::Int32
+            | FieldType::Fixed64
+            | FieldType::Fixed32
+            | FieldType::Uint32
+            | FieldType::Sfixed32
+            | FieldType::Sfixed64
+            | FieldType::Sint32
+            | FieldType::Sint64 => match field.options.get("packed") {
                 // In proto3, `repeated` fields of scalar numeric types uses `packed`
                 // encoding by default
-                match &field.typ {
-                    FieldType::Double
-                    | FieldType::Float
-                    | FieldType::Int64
-                    | FieldType::Uint64
-                    | FieldType::Int32
-                    | FieldType::Fixed64
-                    | FieldType::Fixed32
-                    | FieldType::Uint32
-                    | FieldType::Sfixed32
-                    | FieldType::Sfixed64
-                    | FieldType::Sint32
-                    | FieldType::Sint64 => true,
-                    _ => false,
-                }
-            }
-            Syntax::Edition(_) => unreachable!(),
+                None => self.fd.syntax == Syntax::Proto3,
+                Some(b) => b == "true"
+            },
+            FieldType::Message(typ) => match self.lookup_type(typ) {
+                Some((_, Container::Enum(_))) => match field.options.get("packed") {
+                    None => self.fd.syntax == Syntax::Proto3,
+                    Some(b) => b == "true"
+                },
+                _ => false,
+            },
+            _ => false,
         }
     }
 
