@@ -63,14 +63,14 @@ too, users must verify it if you want to switch to `prust`.
 
 ```text
 Decoding 6000 times
-prost:   969.55 op/s,   379.43 M/s, 6.19s
-quick:  1410.40 op/s,   551.96 M/s, 4.25s
-prust:  1267.26 op/s,   495.94 M/s, 4.73s
+prost:   964.93 op/s,   377.62 M/s, 6.22s
+quick:  1426.05 op/s,   558.08 M/s, 4.21s
+prust:  1235.72 op/s,   483.60 M/s, 4.86s
 
 Encoding 6000 times
-prost:  1574.18 op/s,   616.05 M/s, 3.81s
-quick:  1982.27 op/s,   775.76 M/s, 3.03s
-prust:  3259.56 op/s,  1275.62 M/s, 1.84s
+prost:  1577.11 op/s,   617.20 M/s, 3.80s
+quick:  1956.55 op/s,   765.69 M/s, 3.07s
+prust:  3375.67 op/s,  1321.06 M/s, 1.78s
 ```
 
 `NOTE`: `prost` seems leak memory, it takes 2.1G to finish our test, while others takes only 1.1M.
