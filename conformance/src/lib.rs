@@ -40,7 +40,8 @@ macro_rules! fuzz {
                         }
                     };
 
-                    // f64 and f32 cannot be compared
+                    // f64 and f32 cannot be compared and hashmap's order is unpredictable
+                    // so we use serde_json::Value to compare orig and decoded
                     let a = serde_json::to_string(&orig).unwrap();
                     let b = serde_json::to_string(&out).unwrap();
                     let a = serde_json::from_str::<serde_json::Value>(&a).unwrap();
