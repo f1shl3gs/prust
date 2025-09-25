@@ -32,7 +32,13 @@ macro_rules! fuzz {
 
                     assert_eq!(calculated, written, "calculated length is not equal to written\n{:?}", orig);
 
-                    let out = prust::$typ::decode(&buf).unwrap();
+                    let out = match prust::$typ::decode(&buf[..written]) {
+                        Ok(decoded) => decoded,
+                        Err(err) => {
+                            println!("buf: {:?}", &buf[..written]);
+                            panic!("decode prust encoded data failed, {}", err);
+                        }
+                    };
 
                     // f64 and f32 cannot be compared
                     let a = serde_json::to_string(&orig).unwrap();

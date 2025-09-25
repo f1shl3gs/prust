@@ -11,3 +11,4 @@ mod map;
 mod required;
 mod sanitize_filepath;
 mod oneof_default_value;
+mod packed_enums;

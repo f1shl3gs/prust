@@ -11,6 +11,7 @@ fn main() {
             "default_values.proto",
             "deprecated_field.proto",
             "oneof_default_value.proto",
+            "packed_enums.proto",
             "map.proto",
             "import_nested.proto",
             "import_nonunique.proto",
