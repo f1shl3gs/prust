@@ -31,6 +31,7 @@ fn main() {
             "data_types.proto",
             "boxed_field.proto",
             "enums.proto",
+            "keyword_enum_variant.proto",
             "optional_empty.proto",
             "optional.proto",
             "zeros_are_not_written.proto",

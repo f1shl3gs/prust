@@ -10,15 +10,19 @@ static KEYWORDS: [&str; 75] = [
 
 pub fn sanitize_variant<N: AsRef<str>, S: AsRef<str>>(name: N, variant: S) -> String {
     let name = upper_camel(name.as_ref());
-    let variant = upper_camel(variant.as_ref());
+    let cased = upper_camel(variant.as_ref());
 
-    let mut variant = variant
+    let mut variant = cased
         .strip_prefix(&name)
-        .map(|s| upper_camel(s))
-        .unwrap_or(variant);
+        .map(upper_camel)
+        .unwrap_or(cased.clone());
 
     if KEYWORDS.contains(&variant.as_str()) {
         variant.push('_');
+    }
+
+    if variant.as_bytes()[0].is_ascii_digit() {
+        return cased;
     }
 
     variant
