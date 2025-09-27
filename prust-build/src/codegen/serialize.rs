@@ -76,7 +76,7 @@ fn generate_encoded_len(buf: &mut Buffer, msg: &Message, cx: &Context) {
                         let comparison = match (&field.typ, default.as_str()) {
                             (FieldType::Bool, "true") => {
                                 format!("!self.{}", snake(&field.name))
-                            },
+                            }
                             (FieldType::Bool, "false") => {
                                 format!("self.{}", snake(&field.name))
                             }
@@ -182,11 +182,13 @@ fn generate_encoded_len(buf: &mut Buffer, msg: &Message, cx: &Context) {
 
                 if cx.packed(field) {
                     let sizeof = match cx.maybe_fixed_size(&field.typ) {
-                        Some(size) => if size != 1 {
-                            format!("self.{}.len() * {}", snake(&field.name), size)
-                        } else {
-                            format!("self.{}.len()", snake(&field.name))
-                        },
+                        Some(size) => {
+                            if size != 1 {
+                                format!("self.{}.len() * {}", snake(&field.name), size)
+                            } else {
+                                format!("self.{}.len()", snake(&field.name))
+                            }
+                        }
                         None => format!(
                             "self.{}.iter().map(|v| {}).sum::<usize>()",
                             snake(&field.name),

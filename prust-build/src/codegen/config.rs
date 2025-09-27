@@ -116,7 +116,8 @@ impl Config {
         S: AsRef<str>,
     {
         for path in paths {
-            self.tree_map.insert(path.as_ref().to_string(), MapType::HashMap);
+            self.tree_map
+                .insert(path.as_ref().to_string(), MapType::HashMap);
         }
 
         self

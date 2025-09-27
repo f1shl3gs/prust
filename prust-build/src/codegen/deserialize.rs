@@ -81,7 +81,7 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
                     };
 
                     buf.push(format!("        {tag} => {assignment},\n"));
-                },
+                }
                 FieldCardinality::Required => {
                     if let FieldType::Message(typ) = &field.typ
                         && let Some((_path, c)) = cx.lookup_type(typ)
@@ -90,7 +90,11 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
                         tag = field.number << 3 | 0;
                     }
 
-                    buf.push(format!("        {tag} => msg.{} = {}?,\n", snake(&field.name), read_field(&field.typ, cx)));
+                    buf.push(format!(
+                        "        {tag} => msg.{} = {}?,\n",
+                        snake(&field.name),
+                        read_field(&field.typ, cx)
+                    ));
                 }
                 FieldCardinality::Repeated => {
                     let assignment = if cx.packed(field) {
@@ -128,7 +132,11 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
                     buf.push("    let num = buf.src[buf.pos];\n");
                     buf.push("    buf.pos += 1;\n");
                     buf.push("    match num {\n");
-                    buf.push(format!("        {} => key = {}?,\n", 1 << 3 | key.wire_type(), read_field(&key, cx)));
+                    buf.push(format!(
+                        "        {} => key = {}?,\n",
+                        1 << 3 | key.wire_type(),
+                        read_field(&key, cx)
+                    ));
                     let value_wire_type = match value {
                         FieldType::Int32
                         | FieldType::Sint32
@@ -145,7 +153,11 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
                         FieldType::String | FieldType::Bytes | FieldType::Map(_, _) => 2,
                         FieldType::Fixed32 | FieldType::Sfixed32 | FieldType::Float => 5,
                     };
-                    buf.push(format!("        {} => value = {}?,\n", 2 << 3 | value_wire_type, read_field(&value, cx)));
+                    buf.push(format!(
+                        "        {} => value = {}?,\n",
+                        2 << 3 | value_wire_type,
+                        read_field(&value, cx)
+                    ));
                     buf.push("        _ => return Err(DecodeError::Varint),\n");
                     buf.push("    }\n");
                     buf.push("}\n");

@@ -161,12 +161,12 @@ impl Context<'_> {
                 // In proto3, `repeated` fields of scalar numeric types uses `packed`
                 // encoding by default
                 None => self.fd.syntax == Syntax::Proto3,
-                Some(b) => b == "true"
+                Some(b) => b == "true",
             },
             FieldType::Message(typ) => match self.lookup_type(typ) {
                 Some((_, Container::Enum(_))) => match field.options.get("packed") {
                     None => self.fd.syntax == Syntax::Proto3,
-                    Some(b) => b == "true"
+                    Some(b) => b == "true",
                 },
                 _ => false,
             },
@@ -296,7 +296,7 @@ impl Context<'_> {
                     | FieldType::Sint64 => FieldCardinality::Required,
                     FieldType::Map(_, _) => unreachable!(),
                 }
-            },
+            }
             _ => unreachable!(),
         }
     }

@@ -152,7 +152,7 @@ fn generate_simple_struct(buf: &mut Buffer, msg: &Message, cx: &Context) {
             FieldCardinality::Map(key, value) => {
                 let path = match &cx.fd.package {
                     Some(pkg) => format!("{}.{}.{}", pkg, cx.path(), field.name),
-                    None => format!("{}.{}", cx.path(), field.name)
+                    None => format!("{}.{}", cx.path(), field.name),
                 };
                 let map_type = match cx.config.tree_map.get(&path) {
                     Some(MapType::BTreeMap) => "BTreeMap",
