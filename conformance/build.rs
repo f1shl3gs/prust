@@ -34,6 +34,7 @@ fn main() {
             "keyword_enum_variant.proto",
             "optional_empty.proto",
             "optional.proto",
+            "presence.proto",
             "zeros_are_not_written.proto",
         ],
     );

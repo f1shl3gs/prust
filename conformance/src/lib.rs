@@ -1,3 +1,7 @@
+use std::fmt::Debug;
+
+use prust::{Deserialize, Serialize};
+
 #[macro_export]
 macro_rules! fuzz {
     ($typ:ident) => {
@@ -71,4 +75,17 @@ macro_rules! fuzz {
             }
         }
     };
+}
+
+pub fn check_message<T>(msg: &T)
+where
+    T: Deserialize + Serialize + Debug + PartialEq,
+{
+    let len = msg.encoded_len();
+    let mut buf = vec![0u8; len];
+    let written = msg.encode(&mut buf).unwrap();
+    assert_eq!(written, len);
+
+    let out = T::decode(&buf[..written]).unwrap();
+    assert_eq!(msg, &out);
 }
