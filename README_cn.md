@@ -121,3 +121,4 @@ fn main() {
 ## TODO
 - ~~实现 map 的 key/value 的默认值检查，以生成更小的二进制数据，降低CPU资源消耗~~ 编/解码性能有所下降
 - 使用 `*const u8` 似乎比 `slice[pos]` 性能更好，还需要更多的测试验证。
+- 支持 [Well-Known Types](https://protobuf.dev/reference/protobuf/google.protobuf/)
