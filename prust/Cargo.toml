@@ -14,7 +14,6 @@ harness = false
 
 [dev-dependencies]
 criterion = { version = "0.7" }
-rand = { version = "0.9" }
 
 [dependencies]
 bytes = { version = "1.10", optional = true }
