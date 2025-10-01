@@ -130,3 +130,4 @@ A running example can be found in the [conformance/tests/services/health.rs](con
 encoded size and resource usage~~ it hurt the performance a little bit.
 - it seems that access data via `*const u8` is better than `slice[pos]`, more test needed. 
 - support [Well-Known Types](https://protobuf.dev/reference/protobuf/google.protobuf/)
+- `prust` cannot handle recursive types
