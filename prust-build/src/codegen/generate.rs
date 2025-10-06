@@ -369,7 +369,7 @@ fn generate_enum(buf: &mut Buffer, en: &Enum, cx: &Context) {
 }
 
 fn generate_oneof<'a>(buf: &mut Buffer, oneof: &OneOf, cx: &Context<'a>) {
-    for attr in cx.message_attributes() {
+    for attr in cx.oneof_attributes() {
         buf.push(format!("{attr}\n"))
     }
 
