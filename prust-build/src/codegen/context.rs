@@ -301,22 +301,6 @@ impl Context<'_> {
         }
     }
 
-    pub fn maybe_full_path(&self, typ: &str) -> Option<String> {
-        let mut path = typ.to_string();
-
-        for msg in self.messages.iter().rev() {
-            if msg.messages.iter().any(|m| m.name == typ)
-                || msg.enums.iter().any(|e| &e.name == typ)
-            {
-                return Some(format!("{}::{path}", snake(&msg.name)));
-            }
-
-            path = format!("{}::{path}", snake(&msg.name));
-        }
-
-        None
-    }
-
     pub fn default_value(&self, field: &Field) -> Option<String> {
         let value = match (self.fd.syntax, field.default_value()) {
             (Syntax::Proto2, None) => return None,
@@ -382,31 +366,6 @@ impl Context<'_> {
         };
 
         Some(value)
-    }
-
-    pub fn read_func(&self, typ: &FieldType) -> &'static str {
-        match typ {
-            FieldType::Double => "Reader::read_double",
-            FieldType::Float => "Reader::read_float",
-            FieldType::Int64 => "Reader::read_int64",
-            FieldType::Uint64 => "Reader::read_uint64",
-            FieldType::Int32 => "Reader::read_int32",
-            FieldType::Fixed64 => "Reader::read_fixed64",
-            FieldType::Fixed32 => "Reader::read_fixed32",
-            FieldType::Bool => "Reader::read_bool",
-            FieldType::String => "Reader::read_string",
-            FieldType::Bytes => "Reader::read_bytes",
-            FieldType::Uint32 => "Reader::read_uint32",
-            FieldType::Sfixed32 => "Reader::read_sfixed32",
-            FieldType::Sfixed64 => "Reader::read_sfixed64",
-            FieldType::Sint32 => "Reader::read_sint32",
-            FieldType::Sint64 => "Reader::read_sint64",
-            FieldType::Message(typ) => match self.lookup_type(typ) {
-                Some((_, Container::Enum(_en))) => "Reader::read_enum",
-                _ => "Reader::read_msg",
-            },
-            FieldType::Map(_, _) => "Reader::read_map",
-        }
     }
 
     pub fn maybe_fixed_size(&self, typ: &FieldType) -> Option<usize> {
