@@ -1,8 +1,9 @@
 mod boxed_field;
 mod data_types;
 mod enums;
+mod keyword_enum_variant;
 mod optional;
 mod optional_empty;
-mod zeros_are_not_written;
-mod keyword_enum_variant;
 mod presence;
+mod zeros_are_not_written;
+mod skip;
