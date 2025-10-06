@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package skip;
+
+message NoDeserialize {}
+message NoSerialize {}
+message NoDeserializeAndSerialize {}
+
+message Wrapper {
+  message NoDeserialize {}
+  message NoSerialize {}
+  message NoDeserializeAndSerialize {}
+}

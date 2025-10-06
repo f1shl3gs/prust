@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+use super::Buffer;
 use super::context::Context;
 use super::generate::generate_proto;
 use super::sanitize::sanitize_filepath;
-use super::{Buffer, ServiceGenerator};
 use crate::ast::FileDescriptor;
 use crate::{Error, parse};
 
@@ -25,9 +25,9 @@ pub struct Config {
     pub(crate) message_attributes: HashMap<String, Vec<String>>,
     pub(crate) enum_attributes: HashMap<String, Vec<String>>,
     pub(crate) oneof_attributes: HashMap<String, Vec<String>>,
+    pub(crate) skip_serialize: HashSet<String>,
+    pub(crate) skip_deserialize: HashSet<String>,
     pub(crate) tree_map: HashMap<String, MapType>,
-
-    pub(crate) service_generator: Option<Box<dyn ServiceGenerator>>,
 }
 
 impl Default for Config {
@@ -41,8 +41,9 @@ impl Default for Config {
             message_attributes: Default::default(),
             enum_attributes: Default::default(),
             oneof_attributes: Default::default(),
+            skip_deserialize: Default::default(),
+            skip_serialize: Default::default(),
             tree_map: Default::default(),
-            service_generator: None,
         }
     }
 }
@@ -74,11 +75,6 @@ impl Config {
         self
     }
 
-    pub fn service_generator(&mut self, generator: Box<dyn ServiceGenerator>) -> &mut Self {
-        self.service_generator = Some(generator);
-        self
-    }
-
     /// set custom attributes for a message
     ///
     /// path could be something like `foo.bar`, `foo.bar.SomeMessage`
@@ -88,6 +84,35 @@ impl Config {
         attribute: A,
     ) -> &mut Self {
         self.message_attributes
+            .entry(path.to_string())
+            .and_modify(|attrs| {
+                attrs.push(attribute.to_string());
+                attrs.dedup();
+            })
+            .or_insert_with(|| vec![attribute.to_string()]);
+        self
+    }
+
+    /// set custom attributes for an enum
+    ///
+    /// path could be something like `foo.bar`, `foo.bar.SomeMessage`
+    pub fn enum_attribute<P: ToString, A: ToString>(&mut self, path: P, attribute: A) -> &mut Self {
+        self.enum_attributes
+            .entry(path.to_string())
+            .and_modify(|attrs| {
+                attrs.push(attribute.to_string());
+                attrs.dedup();
+            })
+            .or_insert_with(|| vec![attribute.to_string()]);
+        self
+    }
+
+    pub fn oneof_attribute<P: ToString, A: ToString>(
+        &mut self,
+        path: P,
+        attribute: A,
+    ) -> &mut Self {
+        self.oneof_attributes
             .entry(path.to_string())
             .and_modify(|attrs| {
                 attrs.push(attribute.to_string());
@@ -123,32 +148,23 @@ impl Config {
         self
     }
 
-    /// set custom attributes for an enum
+    /// This function prevent code generator to implement `Deserialize` for structs
     ///
-    /// path could be something like `foo.bar`, `foo.bar.SomeMessage`
-    pub fn enum_attribute<P: ToString, A: ToString>(&mut self, path: P, attribute: A) -> &mut Self {
-        self.enum_attributes
-            .entry(path.to_string())
-            .and_modify(|attrs| {
-                attrs.push(attribute.to_string());
-                attrs.dedup();
-            })
-            .or_insert_with(|| vec![attribute.to_string()]);
+    /// It's helpful for people to implement `Deserialize` manually
+    pub fn skip_deserialize<T: ToString>(&mut self, paths: &[T]) -> &mut Self {
+        for path in paths {
+            self.skip_deserialize.insert(path.to_string());
+        }
         self
     }
 
-    pub fn oneof_attribute<P: ToString, A: ToString>(
-        &mut self,
-        path: P,
-        attribute: A,
-    ) -> &mut Self {
-        self.oneof_attributes
-            .entry(path.to_string())
-            .and_modify(|attrs| {
-                attrs.push(attribute.to_string());
-                attrs.dedup();
-            })
-            .or_insert_with(|| vec![attribute.to_string()]);
+    /// This function prevent code generator to implement `Serialize` for structs
+    ///
+    /// It's helpful for people to implement `Serialize` manually
+    pub fn skip_serialize<T: ToString>(&mut self, paths: &[T]) -> &mut Self {
+        for path in paths {
+            self.skip_serialize.insert(path.to_string());
+        }
         self
     }
 

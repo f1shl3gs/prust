@@ -58,6 +58,14 @@ fn main() {
         .out_dir("tests/services/tonic")
         .compile_protos(&["tests/services/example.proto"], &["tests/services"])
         .unwrap();
+
+    // skip deserialize or serialize
+    prust_build::Config::default()
+        .skip_deserialize(&["NoDeserialize", "NoDeserializeAndSerialize", "Wrapper.NoDeserialize", "Wrapper.NoDeserializeAndSerialize"])
+        .skip_serialize(&["NoSerialize", "NoDeserializeAndSerialize", "Wrapper.NoSerialize", "Wrapper.NoDeserializeAndSerialize"])
+        .output("tests/proto3/prust")
+        .compile(&[], &["tests/proto3/skip.proto"])
+        .unwrap();
 }
 
 fn compile(root: &str, protos: &[&str]) {

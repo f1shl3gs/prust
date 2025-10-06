@@ -28,14 +28,4 @@ impl Buffer {
     pub fn into_inner(self) -> String {
         self.inner
     }
-
-    pub fn block(&mut self, f: impl FnOnce()) {
-        self.indent += 1;
-        f();
-        self.indent -= 1;
-    }
-}
-
-pub trait ServiceGenerator {
-    fn generate(&self, buf: &mut Buffer, cx: &context::Context);
 }

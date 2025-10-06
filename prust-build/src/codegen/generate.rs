@@ -67,8 +67,13 @@ pub fn generate_proto<'a>(buf: &mut Buffer, cx: &mut Context<'a>) -> Result<(), 
 fn generate_struct<'a>(buf: &mut Buffer, msg: &'a Message, cx: &mut Context<'a>) {
     generate_simple_struct(buf, msg, cx);
 
-    generate_deserialize(buf, msg, cx);
-    generate_serialize(buf, msg, cx);
+    let path = cx.path();
+    if !cx.config.skip_deserialize.contains(&path) {
+        generate_deserialize(buf, msg, cx);
+    }
+    if !cx.config.skip_serialize.contains(&path) {
+        generate_serialize(buf, msg, cx);
+    }
 
     if msg.messages.is_empty() && msg.enums.is_empty() && msg.oneofs.is_empty() {
         return;
