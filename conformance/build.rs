@@ -61,10 +61,28 @@ fn main() {
 
     // skip deserialize or serialize
     prust_build::Config::default()
-        .skip_deserialize(&["NoDeserialize", "NoDeserializeAndSerialize", "Wrapper.NoDeserialize", "Wrapper.NoDeserializeAndSerialize"])
-        .skip_serialize(&["NoSerialize", "NoDeserializeAndSerialize", "Wrapper.NoSerialize", "Wrapper.NoDeserializeAndSerialize"])
+        .skip_deserialize(&[
+            "NoDeserialize",
+            "NoDeserializeAndSerialize",
+            "Wrapper.NoDeserialize",
+            "Wrapper.NoDeserializeAndSerialize",
+        ])
+        .skip_serialize(&[
+            "NoSerialize",
+            "NoDeserializeAndSerialize",
+            "Wrapper.NoSerialize",
+            "Wrapper.NoDeserializeAndSerialize",
+        ])
         .output("tests/proto3/prust")
         .compile(&[], &["tests/proto3/skip.proto"])
+        .unwrap();
+
+    // field attributes
+    prust_build::Config::default()
+        .message_attribute("Data", "#[derive(serde::Serialize)]")
+        .field_attribute("Data.first", "#[serde(skip_serializing)]")
+        .output("tests/proto3/prust")
+        .compile(&[], &["tests/proto3/field_attributes.proto"])
         .unwrap();
 }
 
