@@ -76,7 +76,7 @@ prust:  3375.67 op/s,  1321.06 M/s, 1.78s
 `NOTE`: `prost` seems leak memory, it takes 2.1G to finish our test, while others takes only 1.1M.
 
 ## Example
-- Add `prust` to `build-dependencies`
+- Add `prust` and `prust-build` to your Cargo.toml 
 ```toml
 [build-dependencies]
 prust-build = 0.1

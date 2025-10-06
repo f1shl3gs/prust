@@ -72,11 +72,11 @@ prust:  3375.67 op/s,  1321.06 M/s, 1.78s
 `NOTE`： `prost` 似乎发生了内存泄漏，在运行时使用了 2.1G 内存，其它的只使用约 1.1M。
 
 ## 示例
-- 添加 `prust` 到 `build-dependencies`
+- 添加 `prust` 和 `prust-build` 到 Cargo.toml
 ```toml
 [build-dependencies]
 prust-build = 0.1
- 
+
 [dependencies]
 prust = 0.1
 ```
