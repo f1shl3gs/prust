@@ -173,6 +173,13 @@ fn generate_simple_struct(buf: &mut Buffer, msg: &Message, cx: &Context) {
             }
         };
 
+        let path = format!("{}.{}", cx.path(), field.name);
+        if let Some(attrs) = cx.config.field_attributes.get(&path) {
+            for attr in attrs {
+                buf.push(format!("    {attr}\n"));
+            }
+        }
+
         buf.push(format!(
             "    pub {}: {},\n",
             sanitize_field(&field.name),

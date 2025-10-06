@@ -25,6 +25,8 @@ pub struct Config {
     pub(crate) message_attributes: HashMap<String, Vec<String>>,
     pub(crate) enum_attributes: HashMap<String, Vec<String>>,
     pub(crate) oneof_attributes: HashMap<String, Vec<String>>,
+    pub(crate) field_attributes: HashMap<String, Vec<String>>,
+
     pub(crate) skip_serialize: HashSet<String>,
     pub(crate) skip_deserialize: HashSet<String>,
     pub(crate) tree_map: HashMap<String, MapType>,
@@ -41,6 +43,7 @@ impl Default for Config {
             message_attributes: Default::default(),
             enum_attributes: Default::default(),
             oneof_attributes: Default::default(),
+            field_attributes: Default::default(),
             skip_deserialize: Default::default(),
             skip_serialize: Default::default(),
             tree_map: Default::default(),
@@ -87,7 +90,6 @@ impl Config {
             .entry(path.to_string())
             .and_modify(|attrs| {
                 attrs.push(attribute.to_string());
-                attrs.dedup();
             })
             .or_insert_with(|| vec![attribute.to_string()]);
         self
@@ -101,7 +103,6 @@ impl Config {
             .entry(path.to_string())
             .and_modify(|attrs| {
                 attrs.push(attribute.to_string());
-                attrs.dedup();
             })
             .or_insert_with(|| vec![attribute.to_string()]);
         self
@@ -116,7 +117,20 @@ impl Config {
             .entry(path.to_string())
             .and_modify(|attrs| {
                 attrs.push(attribute.to_string());
-                attrs.dedup();
+            })
+            .or_insert_with(|| vec![attribute.to_string()]);
+        self
+    }
+
+    pub fn field_attribute<P: ToString, A: ToString>(
+        &mut self,
+        path: P,
+        attribute: A,
+    ) -> &mut Self {
+        self.field_attributes
+            .entry(path.to_string())
+            .and_modify(|attrs| {
+                attrs.push(attribute.to_string());
             })
             .or_insert_with(|| vec![attribute.to_string()]);
         self

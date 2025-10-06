@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package field_attributes;
+
+message Data {
+  int32 first = 1;
+  int64 second = 2;
+}
