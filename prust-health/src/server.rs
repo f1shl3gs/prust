@@ -17,10 +17,61 @@ pub struct HealthReporter {
     statuses: Arc<RwLock<HashMap<String, StatusPair>>>,
 }
 
+impl HealthReporter {
+    /// Create a new HealthReporter with an initial service (named ""), corresponding to overall server health
+    pub fn new() -> Self {
+        // According to the gRPC Health Check specification, the empty service "" corresponds to the overall server health
+        let server_status = ("".to_string(), watch::channel(ServingStatus::Serving));
+
+        let statuses = Arc::new(RwLock::new(HashMap::from([server_status])));
+
+        HealthReporter { statuses }
+    }
+
+    /// Sets the status of the service with `service_name` to `status`. This notifies any watchers
+    /// if there is a change in status.
+    pub async fn set_service_status<S>(&self, service_name: S, status: ServingStatus)
+    where
+        S: AsRef<str>,
+    {
+        let service_name = service_name.as_ref();
+        let mut writer = self.statuses.write().await;
+        match writer.get(service_name) {
+            Some((tx, _)) => {
+                // We only ever hand out clones of the receiver, so the originally-created
+                // receiver should always be present, only being dropped when clearing the
+                // service status. Consequently, `tx.send` should not fail, making use
+                // of `expect` here safe.
+                tx.send(status).expect("channel should not be closed");
+            }
+            None => {
+                writer.insert(service_name.to_string(), watch::channel(status));
+            }
+        };
+    }
+
+    /// Clear the status of the given service.
+    pub async fn clear_service_status(&mut self, service_name: &str) {
+        let mut writer = self.statuses.write().await;
+        let _ = writer.remove(service_name);
+    }
+}
+
 /// A service providing implementations of gRPC health checking protocol.
 #[derive(Debug)]
 pub struct HealthService {
     statuses: Arc<RwLock<HashMap<String, StatusPair>>>,
+}
+
+impl HealthService {
+    fn new(services: Arc<RwLock<HashMap<String, StatusPair>>>) -> Self {
+        HealthService { statuses: services }
+    }
+
+    async fn service_health(&self, service_name: &str) -> Option<ServingStatus> {
+        let reader = self.statuses.read().await;
+        reader.get(service_name).map(|p| *p.1.borrow())
+    }
 }
 
 #[async_trait]
@@ -97,4 +148,155 @@ pub fn health_reporter() -> (HealthReporter, HealthServer<impl Health>) {
     };
 
     (reporter, HealthServer::new(service))
+}
+
+#[cfg(test)]
+mod tests {
+    use prust::tonic::{Code, Request, Status};
+    use tokio::sync::watch;
+    use tokio_stream::StreamExt;
+
+    use super::{HealthReporter, HealthService, ServingStatus, Health, HealthCheckRequest};
+
+    fn assert_grpc_status(wire: Option<Status>, expected: Code) {
+        let wire = wire.expect("status is not None").code();
+        assert_eq!(wire, expected);
+    }
+
+    async fn make_test_service() -> (HealthReporter, HealthService) {
+        let health_reporter = HealthReporter::new();
+
+        // insert test value
+        {
+            let mut statuses = health_reporter.statuses.write().await;
+            statuses.insert(
+                "TestService".to_string(),
+                watch::channel(ServingStatus::Unknown),
+            );
+        }
+
+        let health_service = HealthService::new(health_reporter.statuses.clone());
+        (health_reporter, health_service)
+    }
+
+    #[tokio::test]
+    async fn test_service_check() {
+        let (reporter, service) = make_test_service().await;
+
+        // Overall server health
+        let resp = service
+            .check(Request::new(HealthCheckRequest {
+                service: "".to_string(),
+            }))
+            .await;
+        assert!(resp.is_ok());
+        let resp = resp.unwrap().into_inner();
+        assert_eq!(resp.status, ServingStatus::Serving);
+
+        // Unregistered service
+        let resp = service
+            .check(Request::new(HealthCheckRequest {
+                service: "Unregistered".to_string(),
+            }))
+            .await;
+        assert!(resp.is_err());
+        assert_grpc_status(resp.err(), Code::NotFound);
+
+        // Registered service - initial state
+        let resp = service
+            .check(Request::new(HealthCheckRequest {
+                service: "TestService".to_string(),
+            }))
+            .await;
+        assert!(resp.is_ok());
+        let resp = resp.unwrap().into_inner();
+        assert_eq!(resp.status, ServingStatus::Unknown);
+
+        // Registered service - updated state
+        reporter
+            .set_service_status("TestService", ServingStatus::Serving)
+            .await;
+        let resp = service
+            .check(Request::new(HealthCheckRequest {
+                service: "TestService".to_string(),
+            }))
+            .await;
+        assert!(resp.is_ok());
+        let resp = resp.unwrap().into_inner();
+        assert_eq!(resp.status, ServingStatus::Serving);
+    }
+
+    #[tokio::test]
+    async fn test_service_watch() {
+        let (mut reporter, service) = make_test_service().await;
+
+        // Overall server health
+        let resp = service
+            .watch(Request::new(HealthCheckRequest {
+                service: "".to_string(),
+            }))
+            .await;
+        assert!(resp.is_ok());
+        let mut resp = resp.unwrap().into_inner();
+        let item = resp
+            .next()
+            .await
+            .expect("streamed response is Some")
+            .expect("response is ok");
+        assert_eq!(item.status, ServingStatus::Serving);
+
+        // Unregistered service
+        let resp = service
+            .watch(Request::new(HealthCheckRequest {
+                service: "Unregistered".to_string(),
+            }))
+            .await;
+        assert!(resp.is_err());
+        assert_grpc_status(resp.err(), Code::NotFound);
+
+        // Registered service
+        let resp = service
+            .watch(Request::new(HealthCheckRequest {
+                service: "TestService".to_string(),
+            }))
+            .await;
+        assert!(resp.is_ok());
+        let mut resp = resp.unwrap().into_inner();
+
+        // Registered service - initial state
+        let item = resp
+            .next()
+            .await
+            .expect("streamed response is Some")
+            .expect("response is ok");
+        assert_eq!(item.status, ServingStatus::Unknown);
+
+        // Registered service - updated state
+        reporter
+            .set_service_status("TestService", ServingStatus::NotServing)
+            .await;
+
+        let item = resp
+            .next()
+            .await
+            .expect("streamed response is Some")
+            .expect("response is ok");
+        assert_eq!(item.status, ServingStatus::NotServing);
+
+        // Registered service - updated state
+        reporter
+            .set_service_status("TestService", ServingStatus::Serving)
+            .await;
+        let item = resp
+            .next()
+            .await
+            .expect("streamed response is Some")
+            .expect("response is ok");
+        assert_eq!(item.status, ServingStatus::Serving);
+
+        // De-registered service
+        reporter.clear_service_status("TestService").await;
+        let item = resp.next().await;
+        assert!(item.is_none());
+    }
 }
