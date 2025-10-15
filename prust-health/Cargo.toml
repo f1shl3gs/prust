@@ -6,8 +6,9 @@ edition = "2024"
 [features]
 default = ["client", "server"]
 client = []
-server = ["dep:tokio"]
+server = ["dep:tokio", "dep:tokio-stream"]
 
 [dependencies]
 prust = { path = "../prust", features = ["tonic"] }
 tokio = { version = "1.48", default-features = false, optional = true, features = ["sync"] }
+tokio-stream = { version = "0.1", default-features = false, optional = true }
