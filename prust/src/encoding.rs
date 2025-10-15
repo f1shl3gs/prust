@@ -29,6 +29,8 @@ impl std::fmt::Display for DecodeError {
     }
 }
 
+impl std::error::Error for DecodeError {}
+
 pub trait Deserialize: Sized {
     fn decode(buf: &[u8]) -> Result<Self, DecodeError>;
 }
