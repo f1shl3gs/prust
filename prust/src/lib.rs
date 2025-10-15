@@ -3,6 +3,9 @@ mod encoding;
 pub use encoding::*;
 
 #[cfg(feature = "tonic")]
+pub use tonic;
+
+#[cfg(feature = "tonic")]
 pub mod tonic_codec {
     use std::marker::PhantomData;
 

@@ -1,0 +1,12 @@
+[package]
+name = "prust-health"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = ["client", "server"]
+client = []
+server = []
+
+[dependencies]
+prust = { path = "../prust", features = ["tonic"] }

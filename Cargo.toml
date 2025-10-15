@@ -5,4 +5,4 @@ members = [
     "prust",
     "prust-build",
     "conformance"
-]
+, "prust-health"]
