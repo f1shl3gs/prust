@@ -1,7 +1,7 @@
 mod generated;
 
-pub use generated::{HealthCheckRequest, HealthCheckResponse};
 pub use generated::health_check_response::ServingStatus;
+pub use generated::{HealthCheckRequest, HealthCheckResponse};
 
 #[cfg(feature = "client")]
 pub use generated::health_client::*;
@@ -10,10 +10,11 @@ pub use generated::health_client::*;
 pub use generated::health_server::*;
 
 #[cfg(feature = "server")]
-mod server {
+pub mod server {
     use std::collections::HashMap;
-    use std::sync::{Arc};
-    use tokio::sync::{watch, RwLock};
+    use std::sync::Arc;
+    use tokio::sync::{RwLock, watch};
+
     use crate::{Health, HealthServer, ServingStatus};
 
     type StatusPair = (watch::Sender<ServingStatus>, watch::Receiver<ServingStatus>);
@@ -43,7 +44,7 @@ mod server {
     pub fn health_reporter() -> (HealthReporter, HealthServer<impl Health>) {
         let server_status = ("".to_string(), watch::channel(ServingStatus::Serving));
         let reporter = HealthReporter {
-            statuses: Arc::new(RwLock::new(HashMap::from([server_status])),),
+            statuses: Arc::new(RwLock::new(HashMap::from([server_status]))),
         };
 
         let service = HealthService {

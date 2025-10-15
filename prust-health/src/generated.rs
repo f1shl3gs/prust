@@ -8,7 +8,8 @@ impl Deserialize for HealthCheckRequest {
         let mut buf = Reader::new(src);
         let mut msg: Self = Default::default();
         while buf.pos < buf.src.len() {
-            let tag = buf.src[buf.pos] as u32; buf.pos += 1;
+            let tag = buf.src[buf.pos] as u32;
+            buf.pos += 1;
             match tag {
                 10 => msg.service = buf.read_string()?,
                 _ => {
@@ -23,11 +24,17 @@ impl Deserialize for HealthCheckRequest {
 }
 impl Serialize for HealthCheckRequest {
     fn encoded_len(&self) -> usize {
-        if !self.service.is_empty() { 1 + sizeof_len(self.service.len()) } else { 0 }
+        if !self.service.is_empty() {
+            1 + sizeof_len(self.service.len())
+        } else {
+            0
+        }
     }
     fn encode(&self, buf: &mut [u8]) -> Result<usize, EncodeError> {
         let mut buf = Writer::new(buf);
-        if !self.service.is_empty() { buf.write(10, self.service.as_str(), Writer::write_string)? }
+        if !self.service.is_empty() {
+            buf.write(10, self.service.as_str(), Writer::write_string)?
+        }
         Ok(buf.pos)
     }
 }
@@ -40,7 +47,8 @@ impl Deserialize for HealthCheckResponse {
         let mut buf = Reader::new(src);
         let mut msg: Self = Default::default();
         while buf.pos < buf.src.len() {
-            let tag = buf.src[buf.pos] as u32; buf.pos += 1;
+            let tag = buf.src[buf.pos] as u32;
+            buf.pos += 1;
             match tag {
                 8 => msg.status = buf.read_enum()?,
                 _ => {
@@ -55,11 +63,17 @@ impl Deserialize for HealthCheckResponse {
 }
 impl Serialize for HealthCheckResponse {
     fn encoded_len(&self) -> usize {
-        if self.status != health_check_response::ServingStatus::Unknown { 1 + 1 } else { 0 }
+        if self.status != health_check_response::ServingStatus::Unknown {
+            1 + 1
+        } else {
+            0
+        }
     }
     fn encode(&self, buf: &mut [u8]) -> Result<usize, EncodeError> {
         let mut buf = Writer::new(buf);
-        if self.status != health_check_response::ServingStatus::Unknown { buf.write(8, self.status as i32, Writer::write_int32)? }
+        if self.status != health_check_response::ServingStatus::Unknown {
+            buf.write(8, self.status as i32, Writer::write_int32)?
+        }
         Ok(buf.pos)
     }
 }
@@ -128,14 +142,12 @@ pub mod health_client {
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
             T: Service<
-                http::Request<tonic::body::Body>,
-                Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                    http::Request<tonic::body::Body>,
+                    Response = http::Response<
+                        <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                    >,
                 >,
-            >,
-            <T as Service<
-                http::Request<tonic::body::Body>,
-            >>::Error: Into<StdError> + Send + Sync,
+            <T as Service<http::Request<tonic::body::Body>>>::Error: Into<StdError> + Send + Sync,
         {
             HealthClient::new(InterceptedService::new(inner, interceptor))
         }
@@ -162,16 +174,10 @@ pub mod health_client {
         pub async fn check(
             &mut self,
             req: impl tonic::IntoRequest<HealthCheckRequest>,
-        ) -> Result<
-            tonic::Response<HealthCheckResponse>,
-            tonic::Status
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|err| tonic::Status::unknown(
-                    format!("Service was not ready: {}", err.into())
-                ))?;
+        ) -> Result<tonic::Response<HealthCheckResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|err| {
+                tonic::Status::unknown(format!("Service was not ready: {}", err.into()))
+            })?;
             let codec = prust::tonic_codec::Codec::default();
             let path = http::uri::PathAndQuery::from_static("/grpc.health.v1.Health/Check");
             let mut req = req.into_request();
@@ -182,20 +188,13 @@ pub mod health_client {
         pub async fn watch(
             &mut self,
             req: impl tonic::IntoRequest<HealthCheckRequest>,
-        ) -> Result<
-            tonic::Response<tonic::codec::Streaming<HealthCheckResponse>>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|err| tonic::Status::unknown(
-                    format!("Service was not ready: {}", err.into())
-                ))?;
+        ) -> Result<tonic::Response<tonic::codec::Streaming<HealthCheckResponse>>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|err| {
+                tonic::Status::unknown(format!("Service was not ready: {}", err.into()))
+            })?;
             let codec = prust::tonic_codec::Codec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/grpc.health.v1.Health/Watch",
-            );
+            let path = http::uri::PathAndQuery::from_static("/grpc.health.v1.Health/Watch");
             let mut req = req.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("grpc.health.v1.Health", "Watch"));
@@ -214,9 +213,9 @@ pub mod health_server {
             &self,
             req: tonic::Request<HealthCheckRequest>,
         ) -> Result<tonic::Response<HealthCheckResponse>, tonic::Status>;
-        type WatchStream: tokio_stream::Stream<
-            Item = Result<HealthCheckResponse, tonic::Status>,
-        > + Send + 'static;
+        type WatchStream: tokio_stream::Stream<Item = Result<HealthCheckResponse, tonic::Status>>
+            + Send
+            + 'static;
         async fn watch(
             &self,
             req: tonic::Request<HealthCheckRequest>,
@@ -240,10 +239,7 @@ pub mod health_server {
                 max_encoding_message_size: None,
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
         where
             F: tonic::service::Interceptor,
         {
@@ -303,11 +299,12 @@ pub mod health_server {
                     impl<T: Health> tonic::server::UnaryService<HealthCheckRequest> for Wrapper<T> {
                         type Response = HealthCheckResponse;
                         type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
-                        fn call(&mut self, req: tonic::Request<HealthCheckRequest>) -> Self::Future {
+                        fn call(
+                            &mut self,
+                            req: tonic::Request<HealthCheckRequest>,
+                        ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
-                            Box::pin(async move {
-                                <T as Health>::check(&inner, req).await
-                            })
+                            Box::pin(async move { <T as Health>::check(&inner, req).await })
                         }
                     }
                     let method = Wrapper(self.inner.clone());
@@ -322,27 +319,21 @@ pub mod health_server {
                             self.max_encoding_message_size,
                         );
 
-                    Box::pin(async move {
-                        Ok(grpc.unary(method, req).await)
-                    })
+                    Box::pin(async move { Ok(grpc.unary(method, req).await) })
                 }
                 "/grpc.health.v1.Health/Watch" => {
                     struct Wrapper<T: Health>(Arc<T>);
                     impl<T: Health> tonic::server::ServerStreamingService<HealthCheckRequest> for Wrapper<T> {
                         type Response = HealthCheckResponse;
                         type ResponseStream = T::WatchStream;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::ResponseStream>,
-                            tonic::Status,
-                        >;
+                        type Future =
+                            BoxFuture<tonic::Response<Self::ResponseStream>, tonic::Status>;
                         fn call(
                             &mut self,
                             req: tonic::Request<HealthCheckRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
-                            Box::pin(async move {
-                                <T as Health>::watch(&inner, req).await
-                            })
+                            Box::pin(async move { <T as Health>::watch(&inner, req).await })
                         }
                     }
                     let method = Wrapper(self.inner.clone());
@@ -356,14 +347,10 @@ pub mod health_server {
                             self.max_decoding_message_size,
                             self.max_encoding_message_size,
                         );
-                    Box::pin(async move {
-                        Ok(grpc.server_streaming(method, req).await)
-                    })
+                    Box::pin(async move { Ok(grpc.server_streaming(method, req).await) })
                 }
                 _ => Box::pin(async move {
-                    let mut resp = http::Response::new(
-                        tonic::body::Body::default(),
-                    );
+                    let mut resp = http::Response::new(tonic::body::Body::default());
                     let headers = resp.headers_mut();
                     headers.insert(
                         tonic::Status::GRPC_STATUS,
@@ -374,7 +361,7 @@ pub mod health_server {
                         tonic::metadata::GRPC_CONTENT_TYPE,
                     );
                     Ok(resp)
-                })
+                }),
             }
         }
     }
