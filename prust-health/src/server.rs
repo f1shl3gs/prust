@@ -156,7 +156,7 @@ mod tests {
     use tokio::sync::watch;
     use tokio_stream::StreamExt;
 
-    use super::{HealthReporter, HealthService, ServingStatus, Health, HealthCheckRequest};
+    use super::{Health, HealthCheckRequest, HealthReporter, HealthService, ServingStatus};
 
     fn assert_grpc_status(wire: Option<Status>, expected: Code) {
         let wire = wire.expect("status is not None").code();
