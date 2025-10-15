@@ -31,7 +31,7 @@ impl Serialize for HealthCheckRequest {
         Ok(buf.pos)
     }
 }
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct HealthCheckResponse {
     pub status: health_check_response::ServingStatus,
 }
