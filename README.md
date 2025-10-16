@@ -2,11 +2,12 @@
 
 English | [中文](README_cn.md)
 
-`prust` is a protobuf implementation for Rust. `prust` generates simple and high performance
-code from `proto2` or `proto3` files.
+`prust` is a protobuf implementation for Rust. `prust` generates simple 
+and high performance code from `proto2` or `proto3` files.
 
 Compare to other implementations
-- Highly optimized code, `prust` calculates everything when generating, so less calculating at runtime
+- Highly optimized code, `prust` calculates everything when generating, 
+so less calculating at runtime
 - Zero dependency, `prust` do not need that, no extra bloat
 - `grpc` is supported by default (with [tonic](https://github.com/hyperium/tonic))
 - Less build time, since we don't need to expand proc macros
@@ -15,8 +16,8 @@ Compare to other implementations
 
 ### Sizes
 `prust` generates structs and implements `Deserialize` and `Serialize`,
-so the generated file is a little bit larger than `prost`, but still smaller 
-than then expanded code.
+so the generated file is a little bit larger than `prost`, but still 
+smaller than the prost's expanded code.
 
 <table>
     <thead>
@@ -128,6 +129,7 @@ A running example can be found in the [conformance/tests/services/health.rs](con
 ## TODO
 - ~~implement default value for map's key and value, which will reduce 
 encoded size and resource usage~~ it hurt the performance a little bit.
-- it seems that access data via `*const u8` is better than `slice[pos]`, more test needed. 
+- it seems that access data via `*const u8` is better than `slice[pos]`, 
+more test needed. 
 - support [Well-Known Types](https://protobuf.dev/reference/protobuf/google.protobuf/)
 - `prust` cannot handle recursive types
