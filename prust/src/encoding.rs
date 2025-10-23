@@ -156,7 +156,7 @@ impl<'a> Writer<'a> {
         hi >>= 3;
 
         while hi >= 128 {
-            if self.pos + 1 > self.buf.len() {
+            if self.pos >= self.buf.len() {
                 return Err(EncodeError::UnexpectedEof);
             }
 
@@ -228,7 +228,7 @@ impl<'a> Writer<'a> {
     }
     pub fn write_uint32(&mut self, mut v: u32) -> Result<(), EncodeError> {
         while v > 0x7f {
-            if self.pos + 1 > self.buf.len() {
+            if self.pos >= self.buf.len() {
                 return Err(EncodeError::UnexpectedEof);
             }
             self.buf[self.pos] = (v as u8) | 0x80;
@@ -237,7 +237,7 @@ impl<'a> Writer<'a> {
             v >>= 7;
         }
 
-        if self.pos + 1 > self.buf.len() {
+        if self.pos >= self.buf.len() {
             return Err(EncodeError::UnexpectedEof);
         }
         self.buf[self.pos] = v as u8;
@@ -267,7 +267,7 @@ impl<'a> Writer<'a> {
         self.write_raw_bytes((v as u64).to_le_bytes().as_ref())
     }
     pub fn write_bool(&mut self, v: bool) -> Result<(), EncodeError> {
-        if self.pos + 1 > self.buf.len() {
+        if self.pos >= self.buf.len() {
             return Err(EncodeError::UnexpectedEof);
         }
 
