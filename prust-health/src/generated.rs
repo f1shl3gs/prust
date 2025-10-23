@@ -100,7 +100,7 @@ pub mod health_check_response {
         }
     }
 }
-#[cfg(feature = "server")]
+#[cfg(feature = "client")]
 pub mod health_client {
     #![allow(dead_code, unused_imports, unused_variables)]
     use super::*;
