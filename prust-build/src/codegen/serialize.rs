@@ -190,7 +190,7 @@ fn generate_encoded_len(buf: &mut Buffer, msg: &Message, cx: &Context) {
                             }
                         }
                         None => format!(
-                            "self.{}.iter().map(|v| {}).sum::<usize>()",
+                            "self.{}.iter().fold(0, |acc, v| acc + {})",
                             snake(&field.name),
                             sizeof
                         ),
@@ -214,7 +214,7 @@ fn generate_encoded_len(buf: &mut Buffer, msg: &Message, cx: &Context) {
                         }
                         None => {
                             format!(
-                                "self.{}.iter().map(|v| {tag_size} + {}).sum::<usize>()",
+                                "self.{}.iter().fold(0, |acc, v| acc + {tag_size} + {})",
                                 snake(&field.name),
                                 sizeof
                             )
@@ -306,7 +306,7 @@ fn generate_encoded_len(buf: &mut Buffer, msg: &Message, cx: &Context) {
                 };
 
                 buf.push(format!(
-                    "{prefix}self.{}.iter().map(|(k, {value_arg})| {tag_size} + sizeof_len({ks} + {vs})).sum::<usize>()\n",
+                    "{prefix}self.{}.iter().fold(0, |acc, (k, {value_arg})| acc + {tag_size} + sizeof_len({ks} + {vs}))\n",
                     snake(&field.name),
                 ))
             }

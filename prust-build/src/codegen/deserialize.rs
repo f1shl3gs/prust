@@ -104,9 +104,9 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
                             format!("msg.{} = buf.read_packed_fixed()?", snake(&field.name),)
                         } else {
                             format!(
-                                "msg.{} = buf.read_packed(|buf| {})?",
+                                "msg.{} = buf.read_packed({})?",
                                 snake(&field.name),
-                                read_field(&field.typ, cx)
+                                read_func(&field.typ, cx)
                             )
                         }
                     } else {
@@ -123,45 +123,14 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
                     buf.indent += 2;
                     buf.push(format!("{tag} => {{\n"));
                     buf.indent += 1;
-                    buf.push("let len = buf.read_varint()? as usize;\n");
-                    buf.push("let end = std::cmp::min(buf.pos + len, buf.src.len());\n");
 
-                    buf.push("let mut key = Default::default();\n");
-                    buf.push("let mut value = Default::default();\n");
-                    buf.push("while buf.pos < end {\n");
-                    buf.push("    let num = buf.src[buf.pos];\n");
-                    buf.push("    buf.pos += 1;\n");
-                    buf.push("    match num {\n");
                     buf.push(format!(
-                        "        {} => key = {}?,\n",
-                        1 << 3 | key.wire_type(),
-                        read_field(&key, cx)
+                        "let (k, v) = buf.read_key_value({}, {})?;\n",
+                        read_func(key, cx),
+                        read_func(value, cx)
                     ));
-                    let value_wire_type = match value {
-                        FieldType::Int32
-                        | FieldType::Sint32
-                        | FieldType::Int64
-                        | FieldType::Sint64
-                        | FieldType::Uint32
-                        | FieldType::Uint64
-                        | FieldType::Bool => 0,
-                        FieldType::Message(typ) => match cx.lookup_type(typ) {
-                            Some((_path, Container::Enum(_en))) => 0,
-                            _ => 2,
-                        },
-                        FieldType::Fixed64 | FieldType::Sfixed64 | FieldType::Double => 1,
-                        FieldType::String | FieldType::Bytes | FieldType::Map(_, _) => 2,
-                        FieldType::Fixed32 | FieldType::Sfixed32 | FieldType::Float => 5,
-                    };
-                    buf.push(format!(
-                        "        {} => value = {}?,\n",
-                        2 << 3 | value_wire_type,
-                        read_field(&value, cx)
-                    ));
-                    buf.push("        _ => return Err(DecodeError::Varint),\n");
-                    buf.push("    }\n");
-                    buf.push("}\n");
-                    buf.push(format!("msg.{}.insert(key, value);\n", snake(&field.name)));
+                    buf.push(format!("msg.{}.insert(k, v);\n", snake(&field.name)));
+
                     buf.indent -= 1;
                     buf.push("}\n");
                     buf.indent -= 2;
@@ -219,6 +188,32 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
     buf.push("}\n");
     buf.indent -= 1;
     buf.push("}\n");
+}
+
+fn read_func(typ: &FieldType, cx: &Context) -> &'static str {
+    match typ {
+        FieldType::Double => "Reader::read_double",
+        FieldType::Float => "Reader::read_float",
+        FieldType::Int64 => "Reader::read_int64",
+        FieldType::Uint64 => "Reader::read_uint64",
+        FieldType::Int32 => "Reader::read_int32",
+        FieldType::Fixed64 => "Reader::read_fixed64",
+        FieldType::Fixed32 => "Reader::read_fixed32",
+        FieldType::Bool => "Reader::read_bool",
+        FieldType::String => "Reader::read_string",
+        FieldType::Message(typ) => match cx.lookup_type(typ) {
+            Some((_path, Container::Message(_))) => "Reader::read_msg",
+            Some((_path, Container::Enum(_))) => "|buf| { buf.read_int32()?.try_into() }",
+            None => unreachable!("{typ} is not found"),
+        },
+        FieldType::Bytes => "Reader::read_bytes",
+        FieldType::Uint32 => "Reader::read_uint32",
+        FieldType::Sfixed32 => "Reader::read_sfixed32",
+        FieldType::Sfixed64 => "Reader::read_sfixed64",
+        FieldType::Sint32 => "Reader::read_sint32",
+        FieldType::Sint64 => "Reader::read_sint64",
+        FieldType::Map(_, _) => unreachable!(),
+    }
 }
 
 fn read_field(typ: &FieldType, cx: &Context) -> &'static str {

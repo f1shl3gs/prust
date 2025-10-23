@@ -549,10 +549,10 @@ impl<'a> Reader<'a> {
 
         Ok(msg)
     }
-    pub fn read_packed<T>(
-        &mut self,
-        mut read: impl FnMut(&mut Reader) -> Result<T, DecodeError>,
-    ) -> Result<Vec<T>, DecodeError> {
+    pub fn read_packed<T, R>(&mut self, mut read: R) -> Result<Vec<T>, DecodeError>
+    where
+        R: FnMut(&mut Self) -> Result<T, DecodeError>,
+    {
         let len = self.read_varint()? as usize;
         if self.pos + len > self.src.len() {
             return Err(DecodeError::UnexpectedEof);
@@ -591,6 +591,36 @@ impl<'a> Reader<'a> {
 
         Ok(array)
     }
+
+    pub fn read_key_value<K, V, KF, VF>(
+        &mut self,
+        mut read_key: KF,
+        mut read_value: VF,
+    ) -> Result<(K, V), DecodeError>
+    where
+        K: Default,
+        V: Default,
+        KF: FnMut(&mut Self) -> Result<K, DecodeError>,
+        VF: FnMut(&mut Self) -> Result<V, DecodeError>,
+    {
+        let len = self.read_varint()? as usize;
+        let end = std::cmp::min(self.pos + len, self.src.len());
+        let mut key = Default::default();
+        let mut value = Default::default();
+        while self.pos < end {
+            let num = self.src[self.pos];
+            self.pos += 1;
+
+            match num >> 3 {
+                1 => key = read_key(self)?,
+                2 => value = read_value(self)?,
+                _ => return Err(DecodeError::Varint),
+            }
+        }
+
+        Ok((key, value))
+    }
+
     pub fn read_unknown(&mut self, tag: u32) -> Result<(), DecodeError> {
         let offset = match (tag & 0x7) as u8 {
             // WireType::Varint

@@ -157,7 +157,8 @@ impl Context<'_> {
             | FieldType::Sfixed32
             | FieldType::Sfixed64
             | FieldType::Sint32
-            | FieldType::Sint64 => match field.options.get("packed") {
+            | FieldType::Sint64
+            | FieldType::Bool => match field.options.get("packed") {
                 // In proto3, `repeated` fields of scalar numeric types uses `packed`
                 // encoding by default
                 None => self.fd.syntax == Syntax::Proto3,
