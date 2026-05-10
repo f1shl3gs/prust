@@ -1030,6 +1030,9 @@ fn validate_number(tag: u32, all: &[Reserved]) -> bool {
                     return false;
                 }
             }
+            Reserved::Field(_) => {
+                unimplemented!()
+            }
         }
     }
 

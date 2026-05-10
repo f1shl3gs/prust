@@ -34,20 +34,42 @@ message FooMessage {
     optional string f_string = 16;
     optional FooMessage f_self_message = 17;
     optional BarMessage f_bar_message = 18;
+
+    repeated bool f_repeated_bool = 48;
+    repeated bool f_repeated_packed_bool = 49 [packed = true];
     repeated int32 f_repeated_int32 = 19;
     repeated int32 f_repeated_packed_int32 = 20 [ packed = true ];
-    repeated float f_repeated_packed_float = 21 [ packed = true ];
-    optional a.b.ImportedMessage f_imported = 22;
-    optional BazMessage f_baz = 23;
-    optional BazMessage.Nested f_nested = 24;
-    optional BazMessage.Nested.NestedEnum f_nested_enum = 25;
-    map<string, int32> f_map = 26;
+    repeated int64 f_repeated_int64 = 21;
+    repeated int64 f_repeated_packed_int64 = 22 [ packed = true];
+    repeated uint32 f_repeated_uint32 = 23;
+    repeated uint32 f_repeated_packed_uint32 = 24 [packed = true];
+    repeated uint64 f_repeated_uint64 = 25;
+    repeated uint64 f_repeated_packed_uint64 = 26 [packed = true];
+    repeated float f_repeated_float = 27;
+    repeated float f_repeated_packed_float = 28 [packed = true];
+    repeated double f_repeated_double = 29;
+    repeated double f_repeated_packed_double = 30 [packed = true];
+    repeated sint32 f_repeated_sint32 = 31;
+    repeated sint32 f_repeated_packed_sint32 = 32 [packed = true];
+    repeated sint64 f_repeated_sint64 = 33;
+    repeated sint64 f_repeated_packed_sint64 = 34 [packed = true];
+    repeated fixed32 f_repeated_fixed32 = 35;
+    repeated fixed32 f_repeated_packed_fixed32 = 36 [packed = true];
+    repeated fixed64 f_repeated_fixed64 = 37;
+    repeated fixed64 f_repeated_packed_fixed64 = 38 [packed = true];
+
+
+    optional a.b.ImportedMessage f_imported = 39;
+    optional BazMessage f_baz = 40;
+    optional BazMessage.Nested f_nested = 41;
+    optional BazMessage.Nested.NestedEnum f_nested_enum = 42;
+    map<string, int32> f_map = 43;
     oneof test_oneof {
-        int32 f1 = 27;
-        bool f2 = 28;
-        string f3 = 29;
+        int32 f1 = 44;
+        bool f2 = 45;
+        string f3 = 46;
     }
-    required Empty empty = 30;
+    required Empty empty = 47;
 }
 
 message BazMessage {

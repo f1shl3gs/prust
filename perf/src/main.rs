@@ -140,14 +140,13 @@ fn encoding() {
 #[ignore]
 #[test]
 fn gen_data() {
-    use std::collections::BTreeMap;
     use std::iter::repeat_with;
 
     use crate::prust::{Complex, Data, PackedRepeats, Repeats, SelfReference, Simple, State};
     use ::prust::Serialize;
     use rand::distr::Alphanumeric;
     use rand::random_range;
-    use rand::{Rng, random};
+    use rand::{random, RngExt};
 
     fn random_string(n: usize) -> String {
         rand::rng()
@@ -189,7 +188,7 @@ fn gen_data() {
             large_bytes: random_bytes(256),
             state: State::try_from(random_range(0..=1)).unwrap(),
             string_int32: {
-                let mut map = BTreeMap::default();
+                let mut map = HashMap::default();
                 for _ in 0..random_range(1..32) {
                     let k = random_string(random_range(1..32));
                     let v = random();
@@ -199,7 +198,7 @@ fn gen_data() {
                 map
             },
             string_simple: {
-                let mut map = BTreeMap::default();
+                let mut map = HashMap::default();
                 for _ in 0..random_range(1..32) {
                     let k = random_string(random_range(1..32));
                     let v = random_simple();
@@ -209,7 +208,7 @@ fn gen_data() {
                 map
             },
             string_state: {
-                let mut map = BTreeMap::default();
+                let mut map = HashMap::default();
                 for _ in 0..random_range(1..32) {
                     let k = random_string(random_range(1..32));
                     let v = State::try_from(random_range(0..=1)).unwrap();

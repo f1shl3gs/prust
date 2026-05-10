@@ -33,7 +33,7 @@ impl Serialize for HealthCheckRequest {
     fn encode(&self, buf: &mut [u8]) -> Result<usize, EncodeError> {
         let mut buf = Writer::new(buf);
         if !self.service.is_empty() {
-            buf.write(10, self.service.as_str(), Writer::write_string)?
+            buf.write_string(10, self.service.as_str())?
         }
         Ok(buf.pos)
     }
@@ -72,7 +72,7 @@ impl Serialize for HealthCheckResponse {
     fn encode(&self, buf: &mut [u8]) -> Result<usize, EncodeError> {
         let mut buf = Writer::new(buf);
         if self.status != health_check_response::ServingStatus::Unknown {
-            buf.write(8, self.status as i32, Writer::write_int32)?
+            buf.write_int32(8, self.status as i32)?
         }
         Ok(buf.pos)
     }

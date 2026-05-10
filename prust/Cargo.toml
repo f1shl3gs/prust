@@ -13,8 +13,8 @@ name = "encoding"
 harness = false
 
 [dev-dependencies]
-criterion = { version = "0.7" }
+criterion = { version = "0.8" }
 
 [dependencies]
-bytes = { version = "1.10", optional = true }
+bytes = { version = "1.11", optional = true }
 tonic = { version = "0.14", optional = true }

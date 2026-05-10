@@ -1,3 +1,6 @@
+#[cfg(target_endian = "big")]
+compile_error!("Prust does not big-endian yet");
+
 mod encoding;
 
 pub use encoding::*;

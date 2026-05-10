@@ -84,6 +84,12 @@ fn main() {
         .output("tests/proto3/prust")
         .compile(&[], &["tests/proto3/field_attributes.proto"])
         .unwrap();
+
+    // third party
+    // prust_build::Config::default()
+    //     .output("tests/third_party/prust")
+    //     .compile(&["tests/third_party/gnmi"], &["tests/third_party/gnmi/gnmi.proto"])
+    //     .unwrap();
 }
 
 fn compile(root: &str, protos: &[&str]) {

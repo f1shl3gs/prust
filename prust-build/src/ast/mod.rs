@@ -281,6 +281,7 @@ pub enum Reserved {
     Single(u32),
     // (inclusive, exclusive)
     Range(u32, u32),
+    Field(String),
 }
 
 impl Reserved {
@@ -288,6 +289,7 @@ impl Reserved {
         match self {
             Reserved::Single(v) => *v == value,
             Reserved::Range(start, end) => value >= *start && value < *end,
+            _ => false
         }
     }
 }

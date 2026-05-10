@@ -203,7 +203,7 @@ fn read_func(typ: &FieldType, cx: &Context) -> &'static str {
         FieldType::String => "Reader::read_string",
         FieldType::Message(typ) => match cx.lookup_type(typ) {
             Some((_path, Container::Message(_))) => "Reader::read_msg",
-            Some((_path, Container::Enum(_))) => "|buf| { buf.read_int32()?.try_into() }",
+            Some((_path, Container::Enum(_))) => "Reader::read_enum",
             None => unreachable!("{typ} is not found"),
         },
         FieldType::Bytes => "Reader::read_bytes",

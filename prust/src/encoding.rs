@@ -1,7 +1,8 @@
 #[derive(Debug, PartialEq)]
 pub enum DecodeError {
+    Malformed,
     // Unexpected EOF, buffer is too short
-    UnexpectedEof,
+    Eof,
     // Invalid varint.
     Varint,
     // Unknown WireType
@@ -17,7 +18,8 @@ pub enum DecodeError {
 impl std::fmt::Display for DecodeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DecodeError::UnexpectedEof => f.write_str("unexpected EOF"),
+            DecodeError::Malformed => f.write_str("malformed data"),
+            DecodeError::Eof => f.write_str("unexpected EOF"),
             DecodeError::Varint => f.write_str("invalid varint"),
             DecodeError::WireType(typ) => write!(f, "unknown wire type: {}", typ),
             DecodeError::Deprecated(typ) => write!(f, "deprecated \"{}\" is not supported", typ),
@@ -39,13 +41,13 @@ pub trait Deserialize: Sized {
 #[derive(Debug)]
 pub enum EncodeError {
     // Unexpected EOF, buffer is too short
-    UnexpectedEof,
+    Eof,
 }
 
 impl std::fmt::Display for EncodeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            EncodeError::UnexpectedEof => f.write_str("unexpected EOF"),
+            EncodeError::Eof => f.write_str("unexpected EOF"),
         }
     }
 }
@@ -75,13 +77,23 @@ pub fn sizeof_int32(v: i32) -> usize {
 }
 
 #[inline]
+fn encode_zigzag32(v: i32) -> u32 {
+    ((v as u32) << 1) ^ ((v >> 31) as u32)
+}
+
+#[inline]
+fn encode_zigzag64(v: i64) -> u64 {
+    ((v as u64) << 1) ^ ((v >> 63) as u64)
+}
+
+#[inline]
 pub fn sizeof_sint32(v: i32) -> usize {
-    sizeof_varint(((v << 1) ^ (v >> 31)) as u32 as u64)
+    sizeof_varint(encode_zigzag32(v) as u64)
 }
 
 #[inline]
 pub fn sizeof_sint64(v: i64) -> usize {
-    sizeof_varint(((v << 1) ^ (v >> 63)) as u64)
+    sizeof_varint(encode_zigzag64(v))
 }
 
 /// Return the number of bytes required to store a variable-length unsigned
@@ -119,25 +131,43 @@ pub struct Writer<'a> {
     pub pos: usize,
 }
 
+// inner methods
 impl<'a> Writer<'a> {
-    pub fn new(buf: &'a mut [u8]) -> Self {
-        Self { buf, pos: 0 }
-    }
-
     #[inline]
     pub fn write_length(&mut self, v: usize) -> Result<(), EncodeError> {
         self.write_varint(v as u64)
     }
+
+    fn write_varint32(&mut self, mut v: u32) -> Result<(), EncodeError> {
+        while v > 0x7f {
+            if self.pos >= self.buf.len() {
+                return Err(EncodeError::Eof);
+            }
+            self.buf[self.pos] = (v as u8) | 0x80;
+            self.pos += 1;
+
+            v >>= 7;
+        }
+
+        if self.pos >= self.buf.len() {
+            return Err(EncodeError::Eof);
+        }
+        self.buf[self.pos] = v as u8;
+        self.pos += 1;
+
+        Ok(())
+    }
+
     pub fn write_varint(&mut self, v: u64) -> Result<(), EncodeError> {
         let mut hi = (v >> 32) as u32;
         if hi == 0 {
-            return self.write_uint32(v as u32);
+            return self.write_varint32(v as u32);
         }
 
         // 4 for lo, 1 for hi
         let lo = v as u32;
-        if self.pos + 5 > self.buf.len() {
-            return Err(EncodeError::UnexpectedEof);
+        if self.buf.len() - self.pos < 5 {
+            return Err(EncodeError::Eof);
         }
         self.buf[self.pos] = lo as u8 | 0x80;
         self.buf[self.pos + 1] = (lo >> 7) as u8 | 0x80;
@@ -157,7 +187,7 @@ impl<'a> Writer<'a> {
 
         while hi >= 128 {
             if self.pos >= self.buf.len() {
-                return Err(EncodeError::UnexpectedEof);
+                return Err(EncodeError::Eof);
             }
 
             self.buf[self.pos] = hi as u8 | 0x80;
@@ -166,16 +196,70 @@ impl<'a> Writer<'a> {
         }
 
         if self.pos >= self.buf.len() {
-            return Err(EncodeError::UnexpectedEof);
+            return Err(EncodeError::Eof);
         }
         self.buf[self.pos] = hi as u8;
         self.pos += 1;
 
         Ok(())
     }
-    pub fn write_raw_bytes(&mut self, v: &[u8]) -> Result<(), EncodeError> {
-        if self.pos + v.len() > self.buf.len() {
-            return Err(EncodeError::UnexpectedEof);
+
+    #[allow(unsafe_op_in_unsafe_fn)]
+    unsafe fn write_varint32_unchecked(&mut self, mut v: u32) {
+        while v > 0x7f {
+            *self.buf.get_unchecked_mut(self.pos) = (v as u8) | 0x80;
+
+            self.pos += 1;
+            v >>= 7;
+        }
+
+        *self.buf.get_unchecked_mut(self.pos) = v as u8;
+        self.pos += 1;
+    }
+
+    #[allow(unsafe_op_in_unsafe_fn)]
+    unsafe fn write_varint64_unchecked(&mut self, v: u64) {
+        let mut hi = (v >> 32) as u32;
+        let lo = v as u32;
+        if hi == 0 {
+            self.write_varint32_unchecked(lo);
+            return;
+        }
+
+        *self.buf.get_unchecked_mut(self.pos) = lo as u8 | 0x80;
+        *self.buf.get_unchecked_mut(self.pos + 1) = (lo >> 7) as u8 | 0x80;
+        *self.buf.get_unchecked_mut(self.pos + 2) = (lo >> 14) as u8 | 0x80;
+        *self.buf.get_unchecked_mut(self.pos + 3) = (lo >> 21) as u8 | 0x80;
+        self.pos += 4;
+
+        if hi < 8 {
+            *self.buf.get_unchecked_mut(self.pos) = (hi << 4) as u8 | (lo >> 28) as u8;
+            self.pos += 1;
+            return;
+        }
+
+        *self.buf.get_unchecked_mut(self.pos) = ((hi & 7) << 4) as u8 | (lo >> 28) as u8 | 0x80;
+        self.pos += 1;
+        hi >>= 3;
+
+        while hi >= 128 {
+            *self.buf.get_unchecked_mut(self.pos) = hi as u8 | 0x80;
+            self.pos += 1;
+            hi >>= 7;
+        }
+
+        *self.buf.get_unchecked_mut(self.pos) = hi as u8;
+        self.pos += 1;
+    }
+
+    #[inline]
+    fn write_tag(&mut self, v: u32) -> Result<(), EncodeError> {
+        self.write_varint32(v)
+    }
+
+    fn write(&mut self, v: &[u8]) -> Result<(), EncodeError> {
+        if self.buf.len() - self.pos < v.len() {
+            return Err(EncodeError::Eof);
         }
 
         unsafe {
@@ -189,20 +273,36 @@ impl<'a> Writer<'a> {
 
         Ok(())
     }
+}
 
-    pub fn write_double(&mut self, v: f64) -> Result<(), EncodeError> {
-        self.write_raw_bytes(v.to_le_bytes().as_ref())
+// write Protobuf types
+impl<'a> Writer<'a> {
+    #[inline]
+    pub fn new(buf: &'a mut [u8]) -> Self {
+        Self { buf, pos: 0 }
     }
-    pub fn write_float(&mut self, v: f32) -> Result<(), EncodeError> {
-        self.write_raw_bytes(v.to_le_bytes().as_ref())
+
+    #[inline]
+    pub fn write_float(&mut self, tag: u32, v: f32) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
+        self.write(v.to_le_bytes().as_ref())
     }
-    pub fn write_int32(&mut self, v: i32) -> Result<(), EncodeError> {
+
+    #[inline]
+    pub fn write_double(&mut self, tag: u32, v: f64) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
+        self.write(v.to_le_bytes().as_ref())
+    }
+
+    pub fn write_int32(&mut self, tag: u32, v: i32) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
+
         if v >= 0 {
-            return self.write_uint32(v as u32);
+            return self.write_varint32(v as u32);
         }
 
-        if self.pos + 10 > self.buf.len() {
-            return Err(EncodeError::UnexpectedEof);
+        if self.buf.len() - self.pos < 10 {
+            return Err(EncodeError::Eof);
         }
 
         self.buf[self.pos] = v as u8 | 0x80;
@@ -223,52 +323,66 @@ impl<'a> Writer<'a> {
 
         Ok(())
     }
-    pub fn write_int64(&mut self, v: i64) -> Result<(), EncodeError> {
+
+    #[inline]
+    pub fn write_int64(&mut self, tag: u32, v: i64) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
         self.write_varint(v as u64)
     }
-    pub fn write_uint32(&mut self, mut v: u32) -> Result<(), EncodeError> {
-        while v > 0x7f {
-            if self.pos >= self.buf.len() {
-                return Err(EncodeError::UnexpectedEof);
-            }
-            self.buf[self.pos] = (v as u8) | 0x80;
-            self.pos += 1;
 
-            v >>= 7;
-        }
-
-        if self.pos >= self.buf.len() {
-            return Err(EncodeError::UnexpectedEof);
-        }
-        self.buf[self.pos] = v as u8;
-        self.pos += 1;
-
-        Ok(())
+    #[inline]
+    pub fn write_uint32(&mut self, tag: u32, v: u32) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
+        self.write_varint32(v)
     }
-    pub fn write_uint64(&mut self, v: u64) -> Result<(), EncodeError> {
+
+    #[inline]
+    pub fn write_uint64(&mut self, tag: u32, v: u64) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
         self.write_varint(v)
     }
-    pub fn write_sint32(&mut self, v: i32) -> Result<(), EncodeError> {
-        self.write_varint(((v << 1) ^ (v >> 31)) as u32 as u64)
+
+    #[inline]
+    pub fn write_sint32(&mut self, tag: u32, v: i32) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
+        self.write_varint32(encode_zigzag32(v))
     }
-    pub fn write_sint64(&mut self, v: i64) -> Result<(), EncodeError> {
-        self.write_varint(((v << 1) ^ (v >> 63)) as u64)
+
+    #[inline]
+    pub fn write_sint64(&mut self, tag: u32, v: i64) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
+        self.write_varint(encode_zigzag64(v))
     }
-    pub fn write_fixed32(&mut self, v: u32) -> Result<(), EncodeError> {
-        self.write_raw_bytes(v.to_le_bytes().as_ref())
+
+    #[inline]
+    pub fn write_fixed32(&mut self, tag: u32, v: u32) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
+        self.write(v.to_le_bytes().as_ref())
     }
-    pub fn write_fixed64(&mut self, v: u64) -> Result<(), EncodeError> {
-        self.write_raw_bytes(v.to_le_bytes().as_ref())
+
+    #[inline]
+    pub fn write_fixed64(&mut self, tag: u32, v: u64) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
+        self.write(v.to_le_bytes().as_ref())
     }
-    pub fn write_sfixed32(&mut self, v: i32) -> Result<(), EncodeError> {
-        self.write_raw_bytes((v as u32).to_le_bytes().as_ref())
+
+    #[inline]
+    pub fn write_sfixed32(&mut self, tag: u32, v: i32) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
+        self.write((v as u32).to_le_bytes().as_ref())
     }
-    pub fn write_sfixed64(&mut self, v: i64) -> Result<(), EncodeError> {
-        self.write_raw_bytes((v as u64).to_le_bytes().as_ref())
+
+    #[inline]
+    pub fn write_sfixed64(&mut self, tag: u32, v: i64) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
+        self.write((v as u64).to_le_bytes().as_ref())
     }
-    pub fn write_bool(&mut self, v: bool) -> Result<(), EncodeError> {
+
+    pub fn write_bool(&mut self, tag: u32, v: bool) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
+
         if self.pos >= self.buf.len() {
-            return Err(EncodeError::UnexpectedEof);
+            return Err(EncodeError::Eof);
         }
 
         self.buf[self.pos] = v as u8;
@@ -276,77 +390,59 @@ impl<'a> Writer<'a> {
 
         Ok(())
     }
-    pub fn write_string(&mut self, v: &str) -> Result<(), EncodeError> {
-        self.write_bytes(v.as_bytes())
-    }
-    pub fn write_bytes(&mut self, v: &[u8]) -> Result<(), EncodeError> {
-        self.write_uint32(v.len() as u32)?;
-        self.write_raw_bytes(v)
-    }
-}
 
-impl<'a> Writer<'a> {
-    pub fn write<T, W>(&mut self, tag: u32, v: T, mut write: W) -> Result<(), EncodeError>
-    where
-        W: FnMut(&mut Self, T) -> Result<(), EncodeError>,
-    {
-        self.write_uint32(tag)?;
-        write(self, v)
+    #[inline]
+    pub fn write_bytes(&mut self, tag: u32, v: &[u8]) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
+        self.write_varint(v.len() as u64)?;
+        self.write(v)
     }
-    pub fn write_msg<T: Serialize>(&mut self, v: &T) -> Result<(), EncodeError> {
+
+    #[inline]
+    pub fn write_string(&mut self, tag: u32, v: &str) -> Result<(), EncodeError> {
+        let bytes = v.as_bytes();
+        self.write_bytes(tag, bytes)
+    }
+
+    pub fn write_msg<T: Serialize>(&mut self, tag: u32, v: &T) -> Result<(), EncodeError> {
+        self.write_tag(tag)?;
+
         let len = v.encoded_len();
         self.write_varint(len as u64)?;
 
-        if self.pos + len > self.buf.len() {
-            return Err(EncodeError::UnexpectedEof);
+        // write elements
+        if self.buf.len() - self.pos < len {
+            return Err(EncodeError::Eof);
         }
 
         self.pos += v.encode(&mut self.buf[self.pos..self.pos + len])?;
 
         Ok(())
     }
-    pub fn write_packed<T>(
-        &mut self,
-        tag: u32,
-        array: &[T],
-        sizeof: impl Fn(&T) -> usize,
-        mut write: impl FnMut(&mut Self, &T) -> Result<(), EncodeError>,
-    ) -> Result<(), EncodeError> {
+}
+
+// packed
+impl<'a> Writer<'a> {
+    pub fn write_packed<T>(&mut self, tag: u32, array: &[T]) -> Result<(), EncodeError> {
         if array.is_empty() {
             return Ok(());
         }
 
         // write tag
-        self.write_uint32(tag)?;
-
-        // write length delimiter
-        let size = array.iter().map(sizeof).sum::<usize>();
-        self.write_uint32(size as u32)?;
-
-        // write elements
-        for v in array {
-            write(self, v)?;
-        }
-
-        Ok(())
-    }
-    pub fn write_packed_fixed<T>(&mut self, tag: u32, array: &[T]) -> Result<(), EncodeError> {
-        if array.is_empty() {
-            return Ok(());
-        }
-
-        // write tag
-        self.write_uint32(tag)?;
+        self.write_tag(tag)?;
 
         // write length delimiter
         let len = array.len() * size_of::<T>();
-        self.write_uint32(len as u32)?;
+        self.write_varint32(len as u32)?;
 
-        // write elements
-        if self.pos + len > self.buf.len() {
-            return Err(EncodeError::UnexpectedEof);
+        if self.buf.len() - self.pos < len {
+            return Err(EncodeError::Eof);
         }
 
+        // write elements
+        //
+        // This is fine for most common platform(aka. little-endian),
+        // e.g. x86, Apple Silicon, ARM, AArch64
         unsafe {
             std::ptr::copy_nonoverlapping(
                 array.as_ptr() as *const u8,
@@ -355,6 +451,199 @@ impl<'a> Writer<'a> {
             )
         };
         self.pos += len;
+
+        Ok(())
+    }
+
+    pub fn write_packed_int32(&mut self, tag: u32, array: &[i32]) -> Result<(), EncodeError> {
+        if array.is_empty() {
+            return Ok(());
+        }
+
+        self.write_tag(tag)?;
+
+        let len = array.iter().map(|v| sizeof_int32(*v)).sum::<usize>();
+        self.write_varint32(len as u32)?;
+
+        // write elements
+        if self.buf.len() - self.pos < len {
+            return Err(EncodeError::Eof);
+        }
+
+        for v in array {
+            let v = *v;
+
+            unsafe {
+                if v >= 0 {
+                    self.write_varint32_unchecked(v as u32)
+                } else {
+                    self.write_varint64_unchecked(v as i64 as u64)
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn write_packed_int64(&mut self, tag: u32, array: &[i64]) -> Result<(), EncodeError> {
+        if array.is_empty() {
+            return Ok(());
+        }
+
+        self.write_tag(tag)?;
+
+        let len = array
+            .iter()
+            .map(|v| sizeof_varint(*v as u64))
+            .sum::<usize>();
+        self.write_varint32(len as u32)?;
+
+        // write elements
+        if self.buf.len() - self.pos < len {
+            return Err(EncodeError::Eof);
+        }
+
+        for v in array {
+            unsafe { self.write_varint64_unchecked(*v as u64) }
+        }
+
+        Ok(())
+    }
+
+    pub fn write_packed_uint32(&mut self, tag: u32, array: &[u32]) -> Result<(), EncodeError> {
+        if array.is_empty() {
+            return Ok(());
+        }
+
+        self.write_tag(tag)?;
+
+        let len = array
+            .iter()
+            .map(|v| sizeof_varint(*v as u64))
+            .sum::<usize>();
+        self.write_varint32(len as u32)?;
+
+        // write elements
+        if self.buf.len() - self.pos < len {
+            return Err(EncodeError::Eof);
+        }
+
+        for v in array {
+            unsafe { self.write_varint32_unchecked(*v) }
+        }
+
+        Ok(())
+    }
+
+    pub fn write_packed_uint64(&mut self, tag: u32, array: &[u64]) -> Result<(), EncodeError> {
+        if array.is_empty() {
+            return Ok(());
+        }
+
+        self.write_tag(tag)?;
+
+        let len = array.iter().map(|v| sizeof_varint(*v)).sum::<usize>();
+        self.write_varint32(len as u32)?;
+
+        // write elements
+        if self.buf.len() - self.pos < len {
+            return Err(EncodeError::Eof);
+        }
+
+        for v in array {
+            unsafe { self.write_varint64_unchecked(*v) };
+        }
+
+        Ok(())
+    }
+
+    pub fn write_packed_sint32(&mut self, tag: u32, array: &[i32]) -> Result<(), EncodeError> {
+        if array.is_empty() {
+            return Ok(());
+        }
+
+        self.write_tag(tag)?;
+
+        let len = array
+            .iter()
+            .map(|v| sizeof_varint(encode_zigzag32(*v) as u64))
+            .sum::<usize>();
+        self.write_varint32(len as u32)?;
+
+        // write elements
+        if self.buf.len() - self.pos < len {
+            return Err(EncodeError::Eof);
+        }
+
+        for v in array {
+            unsafe {
+                self.write_varint32_unchecked(encode_zigzag32(*v));
+            };
+        }
+
+        Ok(())
+    }
+
+    pub fn write_packed_sint64(&mut self, tag: u32, array: &[i64]) -> Result<(), EncodeError> {
+        if array.is_empty() {
+            return Ok(());
+        }
+
+        self.write_tag(tag)?;
+
+        let len = array
+            .iter()
+            .map(|v| sizeof_varint(encode_zigzag64(*v)))
+            .sum::<usize>();
+        self.write_varint32(len as u32)?;
+
+        // write elements
+        if self.buf.len() - self.pos < len {
+            return Err(EncodeError::Eof);
+        }
+
+        for v in array {
+            unsafe {
+                self.write_varint64_unchecked(encode_zigzag64(*v));
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn write_packed_enum<T: Copy + Into<i32>>(
+        &mut self,
+        tag: u32,
+        array: &[T],
+    ) -> Result<(), EncodeError> {
+        if array.is_empty() {
+            return Ok(());
+        }
+
+        self.write_tag(tag)?;
+
+        let len = array
+            .iter()
+            .map(|v| sizeof_int32((*v).into()))
+            .sum::<usize>();
+        self.write_varint32(len as u32)?;
+
+        // write elements
+        if self.buf.len() - self.pos < len {
+            return Err(EncodeError::Eof);
+        }
+
+        for v in array {
+            let v = (*v).into();
+
+            unsafe {
+                if v >= 0 {
+                    self.write_varint32_unchecked(v as u32);
+                } else {
+                    self.write_varint64_unchecked(v as i64 as u64);
+                }
+            }
+        }
 
         Ok(())
     }
@@ -369,10 +658,12 @@ impl<'a> Reader<'a> {
     pub fn new(src: &'a [u8]) -> Self {
         Self { src, pos: 0 }
     }
+
+    #[inline]
     pub fn read_varint(&mut self) -> Result<u64, DecodeError> {
         let len = (self.src.len() - self.pos).min(10);
         if len == 0 {
-            return Err(DecodeError::UnexpectedEof);
+            return Err(DecodeError::Eof);
         }
 
         let b = self.src[self.pos] as u64;
@@ -386,18 +677,28 @@ impl<'a> Reader<'a> {
             let b = self.src[self.pos] as u64;
             self.pos += 1;
 
+            // no need to so strict
+            //
+            // if i == 9 && (b & 0x7e) != 0 {
+            //     return Err(DecodeError::Varint);
+            // }
+
             v |= (b & 0x7f) << (i * 7);
             if b & 0x80 == 0 {
-                break;
+                return Ok(v);
             }
         }
 
-        Ok(v)
+        if len == 10 {
+            Err(DecodeError::Varint)
+        } else {
+            Err(DecodeError::Eof)
+        }
     }
 
     pub fn read_double(&mut self) -> Result<f64, DecodeError> {
-        if self.pos + 8 > self.src.len() {
-            return Err(DecodeError::UnexpectedEof);
+        if self.src.len() - self.pos < 8 {
+            return Err(DecodeError::Eof);
         }
 
         let value = unsafe {
@@ -407,15 +708,13 @@ impl<'a> Reader<'a> {
                 .cast::<f64>()
                 .read_unaligned()
         };
-        // let value = f64::from_bits(raw);
-        // let value = f64::from_le_bytes((&self.src[self.pos..self.pos + 8]).try_into().unwrap());
         self.pos += 8;
 
         Ok(value)
     }
     pub fn read_float(&mut self) -> Result<f32, DecodeError> {
-        if self.pos + 4 > self.src.len() {
-            return Err(DecodeError::UnexpectedEof);
+        if self.src.len() - self.pos < 4 {
+            return Err(DecodeError::Eof);
         }
 
         let value = unsafe {
@@ -425,8 +724,6 @@ impl<'a> Reader<'a> {
                 .cast::<f32>()
                 .read_unaligned()
         };
-        // let value = f32::from_bits(raw);
-        // let value = f32::from_le_bytes((&self.src[self.pos..self.pos + 4]).try_into().unwrap());
         self.pos += 4;
 
         Ok(value)
@@ -452,48 +749,76 @@ impl<'a> Reader<'a> {
         Ok(((v >> 1) as i64) ^ (-((v & 1) as i64)))
     }
     pub fn read_fixed32(&mut self) -> Result<u32, DecodeError> {
-        if self.pos + 4 > self.src.len() {
-            return Err(DecodeError::UnexpectedEof);
+        if self.src.len() - self.pos < 4 {
+            return Err(DecodeError::Eof);
         }
 
-        let value = u32::from_le_bytes((&self.src[self.pos..self.pos + 4]).try_into().unwrap());
+        // fine for little-endian
+        let value = unsafe {
+            self.src
+                .as_ptr()
+                .add(self.pos)
+                .cast::<u32>()
+                .read_unaligned()
+        };
         self.pos += 4;
 
         Ok(value)
     }
     pub fn read_fixed64(&mut self) -> Result<u64, DecodeError> {
-        if self.pos + 8 > self.src.len() {
-            return Err(DecodeError::UnexpectedEof);
+        if self.src.len() - self.pos < 8 {
+            return Err(DecodeError::Eof);
         }
 
-        let value = u64::from_le_bytes((&self.src[self.pos..self.pos + 8]).try_into().unwrap());
+        // fine for little-endian
+        let value = unsafe {
+            self.src
+                .as_ptr()
+                .add(self.pos)
+                .cast::<u64>()
+                .read_unaligned()
+        };
         self.pos += 8;
 
         Ok(value)
     }
     pub fn read_sfixed32(&mut self) -> Result<i32, DecodeError> {
-        if self.pos + 4 > self.src.len() {
-            return Err(DecodeError::UnexpectedEof);
+        if self.src.len() - self.pos < 4 {
+            return Err(DecodeError::Eof);
         }
 
-        let value = i32::from_le_bytes((&self.src[self.pos..self.pos + 4]).try_into().unwrap());
+        // fine for little-endian
+        let value = unsafe {
+            self.src
+                .as_ptr()
+                .add(self.pos)
+                .cast::<i32>()
+                .read_unaligned()
+        };
         self.pos += 4;
 
         Ok(value)
     }
     pub fn read_sfixed64(&mut self) -> Result<i64, DecodeError> {
-        if self.pos + 8 > self.src.len() {
-            return Err(DecodeError::UnexpectedEof);
+        if self.src.len() - self.pos < 8 {
+            return Err(DecodeError::Eof);
         }
 
-        let value = i64::from_le_bytes((&self.src[self.pos..self.pos + 8]).try_into().unwrap());
+        // fine for little-endian
+        let value = unsafe {
+            self.src
+                .as_ptr()
+                .add(self.pos)
+                .cast::<i64>()
+                .read_unaligned()
+        };
         self.pos += 8;
 
         Ok(value)
     }
     pub fn read_bool(&mut self) -> Result<bool, DecodeError> {
         if self.pos >= self.src.len() {
-            return Err(DecodeError::UnexpectedEof);
+            return Err(DecodeError::Eof);
         }
 
         let v = self.src[self.pos];
@@ -503,8 +828,8 @@ impl<'a> Reader<'a> {
     }
     pub fn read_string(&mut self) -> Result<String, DecodeError> {
         let len = self.read_varint()? as usize;
-        if self.pos + len > self.src.len() {
-            return Err(DecodeError::UnexpectedEof);
+        if self.src.len() - self.pos < len {
+            return Err(DecodeError::Eof);
         }
 
         match core::str::from_utf8(&self.src[self.pos..self.pos + len]) {
@@ -512,23 +837,21 @@ impl<'a> Reader<'a> {
                 self.pos += len;
                 Ok(s.to_string())
             }
-            Err(_) => Err(DecodeError::UnexpectedEof),
+            Err(_) => Err(DecodeError::Utf8),
         }
     }
+
     pub fn read_bytes(&mut self) -> Result<Vec<u8>, DecodeError> {
         let len = self.read_varint()? as usize;
-        if self.pos + len > self.src.len() {
-            return Err(DecodeError::UnexpectedEof);
+        if len == 0 {
+            return Ok(Vec::new());
         }
 
-        let data = unsafe {
-            let layout = std::alloc::Layout::array::<u8>(len).unwrap();
-            let ptr = std::alloc::alloc(layout);
+        if self.src.len() - self.pos < len {
+            return Err(DecodeError::Eof);
+        }
 
-            std::ptr::copy_nonoverlapping(self.src.as_ptr().add(self.pos), ptr, len);
-
-            Vec::from_raw_parts(ptr, len, len)
-        };
+        let data = self.src[self.pos..self.pos + len].to_vec();
         self.pos += len;
 
         Ok(data)
@@ -540,8 +863,8 @@ impl<'a> Reader<'a> {
     }
     pub fn read_msg<D: Deserialize>(&mut self) -> Result<D, DecodeError> {
         let len = self.read_varint()? as usize;
-        if self.pos + len > self.src.len() {
-            return Err(DecodeError::UnexpectedEof);
+        if self.src.len() - self.pos < len {
+            return Err(DecodeError::Eof);
         }
 
         let msg = D::decode(&self.src[self.pos..self.pos + len])?;
@@ -554,11 +877,12 @@ impl<'a> Reader<'a> {
         R: FnMut(&mut Self) -> Result<T, DecodeError>,
     {
         let len = self.read_varint()? as usize;
-        if self.pos + len > self.src.len() {
-            return Err(DecodeError::UnexpectedEof);
+        if self.src.len() - self.pos < len {
+            return Err(DecodeError::Eof);
         }
 
-        // This capacity is just a nonsense guess, and trying to reduce allocations
+        // This capacity is just a guess, which is trying to reduce alloc
+        // not avoid realloc.
         let mut array = Vec::with_capacity(len / size_of::<T>());
         let mut buf = Reader {
             src: &self.src[self.pos..self.pos + len],
@@ -572,15 +896,22 @@ impl<'a> Reader<'a> {
 
         Ok(array)
     }
-    pub fn read_packed_fixed<T: Clone>(&mut self) -> Result<Vec<T>, DecodeError> {
+
+    // NOTE:　bool is handled here, Protobuf only handle 'byte's not 'bit's,
+    //   so, we might receive some wire bytes like [0, 1, 2, 4].
+    pub fn read_packed_fixed<T>(&mut self) -> Result<Vec<T>, DecodeError> {
         let len = self.read_varint()? as usize;
-        if self.pos + len > self.src.len() {
-            return Err(DecodeError::UnexpectedEof);
+        if len % size_of::<T>() != 0 {
+            return Err(DecodeError::Malformed);
+        }
+
+        if self.src.len() - self.pos < len {
+            return Err(DecodeError::Eof);
         }
 
         let mut array = Vec::<T>::with_capacity(len / size_of::<T>());
         unsafe {
-            core::ptr::copy(
+            core::ptr::copy_nonoverlapping(
                 self.src.as_ptr().add(self.pos),
                 array.as_mut_ptr() as *mut u8,
                 len,
@@ -603,8 +934,10 @@ impl<'a> Reader<'a> {
         KF: FnMut(&mut Self) -> Result<K, DecodeError>,
         VF: FnMut(&mut Self) -> Result<V, DecodeError>,
     {
+        // kind of lossy for other language implement
         let len = self.read_varint()? as usize;
-        let end = std::cmp::min(self.pos + len, self.src.len());
+        let end = self.pos.saturating_add(len).min(self.src.len());
+
         let mut key = Default::default();
         let mut value = Default::default();
         while self.pos < end {

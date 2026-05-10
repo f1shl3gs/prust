@@ -465,53 +465,75 @@ fn generate_encode(buf: &mut Buffer, msg: &Message, cx: &Context) {
                 };
 
                 if cx.packed(field) {
-                    if cx.maybe_fixed_size(&field.typ).is_some() {
-                        buf.push(format!(
-                            "buf.write_packed_fixed({tag}, &self.{})?;\n",
-                            snake(&field.name),
-                        ));
+                    match &field.typ {
+                        FieldType::Bool
+                        | FieldType::Double
+                        | FieldType::Float
+                        | FieldType::Fixed64
+                        | FieldType::Fixed32
+                        | FieldType::Sfixed32
+                        | FieldType::Sfixed64 => {
+                            buf.push(format!(
+                                "buf.write_packed({tag}, &self.{})?;\n",
+                                snake(&field.name),
+                            ));
+                        }
 
-                        continue;
+                        FieldType::Int32 => {
+                            buf.push(format!(
+                                "buf.write_packed_int32({tag}, &self.{})?;\n",
+                                snake(&field.name),
+                            ));
+                        }
+                        FieldType::Int64 => {
+                            buf.push(format!(
+                                "buf.write_packed_int64({tag}, &self.{})?;\n",
+                                snake(&field.name),
+                            ));
+                        }
+                        FieldType::Uint32 => {
+                            buf.push(format!(
+                                "buf.write_packed_uint32({tag}, &self.{})?;\n",
+                                snake(&field.name),
+                            ));
+                        }
+                        FieldType::Uint64 => {
+                            buf.push(format!(
+                                "buf.write_packed_uint64({tag}, &self.{})?;\n",
+                                snake(&field.name),
+                            ));
+                        }
+                        FieldType::Sint32 => {
+                            buf.push(format!(
+                                "buf.write_packed_sint32({tag}, &self.{})?;\n",
+                                snake(&field.name),
+                            ));
+                        }
+                        FieldType::Sint64 => {
+                            buf.push(format!(
+                                "buf.write_packed_sint64({tag}, &self.{})?;\n",
+                                snake(&field.name),
+                            ));
+                        }
+
+                        FieldType::Bytes | FieldType::String => {
+                            unreachable!("Protobuf does not support packed bytes and string");
+                        }
+
+                        FieldType::Message(typ) => {
+                            let Some((_path, Container::Enum(_))) = cx.lookup_type(typ) else {
+                                unreachable!()
+                            };
+
+                            buf.push(format!(
+                                "buf.write_packed_enum({tag}, &self.{})?;\n",
+                                snake(&field.name),
+                            ));
+                        }
+                        FieldType::Map(_, _) => unreachable!(),
                     }
 
-                    let write = match &field.typ {
-                        FieldType::Double => format!("buf.write_double({field_name})"),
-                        FieldType::Float => format!("buf.write_float({field_name})"),
-                        FieldType::Int64 => format!("buf.write_int64({field_name})"),
-                        FieldType::Uint64 => format!("buf.write_uint64({field_name})"),
-                        FieldType::Int32 => format!("buf.write_int32({field_name})"),
-                        FieldType::Fixed64 => format!("buf.write_fixed64({field_name})"),
-                        FieldType::Fixed32 => format!("buf.write_fixed32({field_name})"),
-                        FieldType::Bool => format!("buf.write_bool({field_name})"),
-                        FieldType::String => format!("buf.write_string({field_name})"),
-                        FieldType::Message(typ) => match cx.lookup_type(typ) {
-                            Some((_path, Container::Message(_msg))) => {
-                                if typ == &msg.name {
-                                    format!("buf.write_msg({field_name}.as_ref())")
-                                } else {
-                                    format!("buf.write_msg({field_name})")
-                                }
-                            }
-                            Some((_, Container::Enum(_))) => {
-                                format!("buf.write_int32({field_name} as i32)")
-                            }
-                            None => unreachable!(),
-                        },
-                        FieldType::Bytes => format!("buf.write_bytes({field_name})"),
-                        FieldType::Uint32 => format!("buf.write_uint32({field_name})"),
-                        FieldType::Sfixed32 => format!("buf.write_sfixed32({field_name})"),
-                        FieldType::Sfixed64 => format!("buf.write_sfixed64({field_name})"),
-                        FieldType::Sint32 => format!("buf.write_sint32({field_name})"),
-                        FieldType::Sint64 => format!("buf.write_sint64({field_name})"),
-                        FieldType::Map(_, _) => unreachable!(),
-                    };
-
-                    buf.push(format!(
-                        "buf.write_packed({tag}, &self.{}, |v| {}, |buf, v| {})?;\n",
-                        snake(&field.name),
-                        type_size(&field.typ, field_name, cx),
-                        write
-                    ));
+                    continue;
                 } else {
                     buf.push(format!(
                         "for v in &self.{} {{ {}? }}\n",
@@ -781,34 +803,32 @@ fn type_size(typ: &FieldType, field_name: &str, cx: &Context) -> String {
 }
 
 fn encode_type(typ: &FieldType, field_name: &str, tag: u32, cx: &Context) -> String {
-    let method = match typ {
-        FieldType::Double => "write_double",
-        FieldType::Float => "write_float",
-        FieldType::Int64 => "write_int64",
-        FieldType::Uint64 => "write_uint64",
-        FieldType::Int32 => "write_int32",
-        FieldType::Fixed64 => "write_fixed64",
-        FieldType::Fixed32 => "write_fixed32",
-        FieldType::Bool => "write_bool",
-        FieldType::Message(typ) => match cx.lookup_type(typ) {
-            Some((_path, Container::Enum(_))) => {
-                return format!("buf.write({tag}, {field_name} as i32, Writer::write_int32)");
-            }
-            _ => "write_msg",
-        },
+    match typ {
+        FieldType::Bool => format!("buf.write_bool({tag}, {field_name})"),
+        FieldType::Float => format!("buf.write_float({tag}, {field_name})"),
+        FieldType::Double => format!("buf.write_double({tag}, {field_name})"),
+        FieldType::Int64 => format!("buf.write_int64({tag}, {field_name})"),
+        FieldType::Uint64 => format!("buf.write_uint64({tag}, {field_name})"),
+        FieldType::Fixed32 => format!("buf.write_fixed32({tag}, {field_name})"),
+        FieldType::Fixed64 => format!("buf.write_fixed64({tag}, {field_name})"),
+        FieldType::Int32 => format!("buf.write_int32({tag}, {field_name})"),
+        FieldType::Uint32 => format!("buf.write_uint32({tag}, {field_name})"),
+        FieldType::Sfixed32 => format!("buf.write_sfixed32({tag}, {field_name})"),
+        FieldType::Sfixed64 => format!("buf.write_sfixed64({tag}, {field_name})"),
+        FieldType::Sint32 => format!("buf.write_sint32({tag}, {field_name})"),
+        FieldType::Sint64 => format!("buf.write_sint64({tag}, {field_name})"),
         FieldType::Bytes => {
-            return format!("buf.write({tag}, {field_name}.as_slice(), Writer::write_bytes)");
+            format!("buf.write_bytes({tag}, {field_name}.as_slice())")
         }
         FieldType::String => {
-            return format!("buf.write({tag}, {field_name}.as_str(), Writer::write_string)");
+            format!("buf.write_string({tag}, {field_name}.as_str())")
         }
-        FieldType::Uint32 => "write_uint32",
-        FieldType::Sfixed32 => "write_sfixed32",
-        FieldType::Sfixed64 => "write_sfixed64",
-        FieldType::Sint32 => "write_sint32",
-        FieldType::Sint64 => "write_sint64",
+        FieldType::Message(typ) => match cx.lookup_type(typ) {
+            Some((_path, Container::Enum(_))) => {
+                format!("buf.write_int32({tag}, {field_name} as i32)")
+            }
+            _ => format!("buf.write_msg({tag}, {field_name})"),
+        },
         FieldType::Map(_, _) => unreachable!("map should be handled outside"),
-    };
-
-    format!("buf.write({tag}, {field_name}, Writer::{method})")
+    }
 }
