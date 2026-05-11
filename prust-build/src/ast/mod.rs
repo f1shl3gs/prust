@@ -289,7 +289,7 @@ impl Reserved {
         match self {
             Reserved::Single(v) => *v == value,
             Reserved::Range(start, end) => value >= *start && value < *end,
-            _ => false
+            _ => false,
         }
     }
 }

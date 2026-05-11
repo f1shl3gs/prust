@@ -377,7 +377,10 @@ fn generate_enum(buf: &mut Buffer, en: &Enum, cx: &Context) {
     // from
     {
         buf.push(format!("impl From<{}> for i32 {{\n", upper_camel(&en.name)));
-        buf.push(format!("    fn from(value: {}) -> Self {{\n", upper_camel(&en.name)));
+        buf.push(format!(
+            "    fn from(value: {}) -> Self {{\n",
+            upper_camel(&en.name)
+        ));
         buf.push("        match value {\n");
 
         for (variant, value) in &en.variants {

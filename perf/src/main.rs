@@ -146,7 +146,7 @@ fn gen_data() {
     use ::prust::Serialize;
     use rand::distr::Alphanumeric;
     use rand::random_range;
-    use rand::{random, RngExt};
+    use rand::{RngExt, random};
 
     fn random_string(n: usize) -> String {
         rand::rng()
