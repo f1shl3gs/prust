@@ -133,3 +133,6 @@ encoded size and resource usage~~ it hurt the performance a little bit.
 more test needed. 
 - support [Well-Known Types](https://protobuf.dev/reference/protobuf/google.protobuf/)
 - `prust` cannot handle recursive types
+- BMI2 optimization -- I don't have any relatively modern CPU for testing， however,
+    given that the underlying implementation for `packed/proto3`'s `repeated int32/int64/...`
+    fields utilizes VARINT encoding, the performance improvement should be significant.

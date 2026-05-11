@@ -123,3 +123,5 @@ fn main() {
 - 使用 `*const u8` 似乎比 `slice[pos]` 性能更好，还需要更多的测试验证。
 - 支持 [Well-Known Types](https://protobuf.dev/reference/protobuf/google.protobuf/)
 - `prust` 不能处理循环引用的 message
+- BMI2 optimization -- 我没有比较新的 CPU 用来测试，在 packed/proto3 的 repeated int32/int64/...
+    等底层使用 varint 编码的情况下，提升应该不错。
