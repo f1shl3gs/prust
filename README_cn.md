@@ -121,7 +121,13 @@ fn main() {
 ## TODO
 - ~~实现 map 的 key/value 的默认值检查，以生成更小的二进制数据，降低CPU资源消耗~~ 编/解码性能有所下降
 - 使用 `*const u8` 似乎比 `slice[pos]` 性能更好，还需要更多的测试验证。
-- 支持 [Well-Known Types](https://protobuf.dev/reference/protobuf/google.protobuf/)
-- `prust` 不能处理循环引用的 message
 - BMI2 optimization -- 我没有比较新的 CPU 用来测试，在 packed/proto3 的 repeated int32/int64/...
     等底层使用 varint 编码的情况下，提升应该不错。
+
+## 暂不支持
+
+- [Well-Known Types](https://protobuf.dev/reference/protobuf/google.protobuf/)
+- 理循环引用的 message
+- 分段的 repeated 字段 https://protobuf.dev/programming-guides/encoding/#repeated
+
+

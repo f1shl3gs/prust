@@ -883,18 +883,20 @@ impl<'a> Reader<'a> {
 
         // This capacity is just a guess, which is trying to reduce alloc
         // not avoid realloc.
+        //
+        // NOTE: protobuf only allow scalar type, whose size is always > 0
         let mut array = Vec::with_capacity(len / size_of::<T>());
-        let mut buf = Reader {
-            src: &self.src[self.pos..self.pos + len],
-            pos: 0,
-        };
-        while buf.pos < buf.src.len() {
-            let v = read(&mut buf)?;
-            array.push(v);
-        }
-        self.pos += len;
 
-        Ok(array)
+        let end = self.pos + len;
+        while self.pos < end {
+            array.push(read(self)?);
+        }
+
+        if self.pos != end {
+            Err(DecodeError::Malformed)
+        } else {
+            Ok(array)
+        }
     }
 
     // NOTE:　bool is handled here, Protobuf only handle 'byte's not 'bit's,

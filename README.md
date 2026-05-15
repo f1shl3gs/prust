@@ -130,9 +130,14 @@ A running example can be found in the [conformance/tests/services/health.rs](con
 - ~~implement default value for map's key and value, which will reduce 
 encoded size and resource usage~~ it hurt the performance a little bit.
 - it seems that access data via `*const u8` is better than `slice[pos]`, 
-more test needed. 
-- support [Well-Known Types](https://protobuf.dev/reference/protobuf/google.protobuf/)
+more test needed.
 - `prust` cannot handle recursive types
 - BMI2 optimization -- I don't have any relatively modern CPU for testing， however,
     given that the underlying implementation for `packed/proto3`'s `repeated int32/int64/...`
     fields utilizes VARINT encoding, the performance improvement should be significant.
+
+## Not Supported yet
+
+- [Well-Known Types](https://protobuf.dev/reference/protobuf/google.protobuf/)
+- recursive types
+- records for `repeated` filed do not need to appear consecutively https://protobuf.dev/programming-guides/encoding/#repeated

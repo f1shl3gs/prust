@@ -102,12 +102,12 @@ pub fn generate_deserialize(buf: &mut Buffer, msg: &Message, cx: &Context) {
 
                         if cx.maybe_fixed_size(&field.typ).is_some() {
                             format!(
-                                "msg.{}.append(&mut buf.read_packed_fixed()?)",
+                                "msg.{} = buf.read_packed_fixed()?",
                                 snake(&field.name),
                             )
                         } else {
                             format!(
-                                "msg.{}.extend(buf.read_packed({})?)",
+                                "msg.{} = buf.read_packed({})?",
                                 snake(&field.name),
                                 read_func(&field.typ, cx)
                             )
