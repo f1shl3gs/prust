@@ -326,7 +326,7 @@ fn generate_enum(buf: &mut Buffer, en: &Enum, cx: &Context) {
     }
 
     buf.push("#[derive(Clone, Copy, Debug, Default, PartialEq)]\n");
-    // buf.push("#[repr(i32)]\n");
+    buf.push("#[repr(i32)]\n");
     buf.push(format!("pub enum {} {{\n", upper_camel(&en.name)));
 
     buf.indent += 1;
@@ -381,18 +381,9 @@ fn generate_enum(buf: &mut Buffer, en: &Enum, cx: &Context) {
             "    fn from(value: {}) -> Self {{\n",
             upper_camel(&en.name)
         ));
-        buf.push("        match value {\n");
 
-        for (variant, value) in &en.variants {
-            buf.push(format!(
-                "            {}::{} => {},\n",
-                upper_camel(&en.name),
-                sanitize_variant(&en.name, variant),
-                value,
-            ));
-        }
+        buf.push("        value as i32\n");
 
-        buf.push("        }\n");
         buf.push("    }\n");
         buf.push("}\n");
     }
